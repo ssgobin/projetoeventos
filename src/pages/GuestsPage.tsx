@@ -1,5 +1,5 @@
 import { collection, getDocs, limit, orderBy, query, startAfter, where, type DocumentData, type QueryDocumentSnapshot } from "firebase/firestore";
-import { Download, Mail, Search } from "lucide-react";
+import { Download, Eye, Mail, Search, X } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useParams } from "react-router-dom";
 import * as XLSX from "xlsx";
@@ -22,6 +22,7 @@ export default function GuestsPage() {
   const [cursor, setCursor] = useState<QueryDocumentSnapshot<DocumentData> | null>(null);
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("todos");
+  const [selectedGuest, setSelectedGuest] = useState<Inscricao | null>(null);
 
   async function load(reset = false) {
     if (!eventoId) return;
@@ -81,7 +82,7 @@ export default function GuestsPage() {
         <div>
           <p className="page-kicker">Convidados</p>
           <h1 className="page-title">Lista de convidados</h1>
-          <p className="page-description">Busca, filtros, detalhes dinâmicos, reenvio de convite e exportação.</p>
+          <p className="page-description">Busca, filtros, informações completas, reenvio de convite e exportação.</p>
         </div>
         <Button onClick={exportXlsx}><Download className="h-4 w-4" />Exportar Excel</Button>
       </div>
@@ -102,7 +103,7 @@ export default function GuestsPage() {
 
       <Card className="overflow-hidden p-0">
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[760px] text-left text-sm">
+          <table className="w-full min-w-[840px] text-left text-sm">
             <thead className="bg-violet-50 text-xs uppercase text-violet-950/60">
               <tr><th className="p-4">Convidado</th><th>E-mail</th><th>Inscrição</th><th>Status</th><th>Código</th><th>Ações</th></tr>
             </thead>
@@ -114,7 +115,12 @@ export default function GuestsPage() {
                   <td>{formatDateTime(guest.criadoEm)}</td>
                   <td><Badge tone={guest.checkin.realizado ? "green" : "amber"}>{guest.checkin.realizado ? "Check-in" : "Pendente"}</Badge></td>
                   <td className="font-mono">{guest.codigoConvite}</td>
-                  <td><Button size="sm" variant="secondary" onClick={() => resend(guest)}><Mail className="h-4 w-4" />Reenviar</Button></td>
+                  <td>
+                    <div className="flex flex-wrap gap-2 py-2 pr-4">
+                      <Button size="sm" variant="secondary" onClick={() => setSelectedGuest(guest)}><Eye className="h-4 w-4" />Ver</Button>
+                      <Button size="sm" variant="secondary" onClick={() => resend(guest)}><Mail className="h-4 w-4" />Reenviar</Button>
+                    </div>
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -123,14 +129,65 @@ export default function GuestsPage() {
       </Card>
 
       <Button variant="secondary" onClick={() => load(false)}>Carregar mais</Button>
-      <Card>
-        <CardTitle>Detalhes dinâmicos</CardTitle>
-        <div className="mt-3 grid gap-3 md:grid-cols-2">
-          {filtered.slice(0, 4).map((guest) => (
-            <pre key={guest.id} className="overflow-auto rounded-md bg-violet-950 p-3 text-xs text-violet-50">{JSON.stringify(guest.respostas, null, 2)}</pre>
-          ))}
+
+      {selectedGuest && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-violet-950/45 p-4 backdrop-blur-sm">
+          <Card className="max-h-[88vh] w-full max-w-2xl animate-scale-in overflow-auto">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <CardTitle>Informações do convidado</CardTitle>
+                <p className="mt-1 text-sm text-violet-950/60">{selectedGuest.email}</p>
+              </div>
+              <Button variant="ghost" size="icon" onClick={() => setSelectedGuest(null)} aria-label="Fechar detalhes">
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+
+            <div className="mt-6 grid gap-3 sm:grid-cols-2">
+              <Detail label="Nome" value={String(selectedGuest.respostas.nome || "-")} />
+              <Detail label="E-mail" value={selectedGuest.email} />
+              <Detail label="Código" value={selectedGuest.codigoConvite} />
+              <Detail label="Inscrição" value={formatDateTime(selectedGuest.criadoEm)} />
+              <Detail label="Check-in" value={selectedGuest.checkin.realizado ? "Realizado" : "Pendente"} />
+              <Detail label="Data do check-in" value={selectedGuest.checkin.dataHora ? formatDateTime(selectedGuest.checkin.dataHora) : "-"} />
+            </div>
+
+            <div className="mt-6">
+              <h3 className="text-sm font-medium text-violet-950">Respostas do formulário</h3>
+              <div className="mt-3 divide-y divide-violet-100 rounded-xl border border-violet-200">
+                {Object.entries(selectedGuest.respostas).map(([key, value]) => (
+                  <div key={key} className="grid gap-1 p-3 sm:grid-cols-[180px_1fr]">
+                    <p className="text-sm font-medium capitalize text-violet-950">{key}</p>
+                    <p className="break-words text-sm text-violet-950/65">{Array.isArray(value) ? value.join(", ") : String(value || "-")}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {selectedGuest.arquivos && selectedGuest.arquivos.length > 0 && (
+              <div className="mt-6">
+                <h3 className="text-sm font-medium text-violet-950">Arquivos enviados</h3>
+                <div className="mt-3 space-y-2">
+                  {selectedGuest.arquivos.map((file) => (
+                    <a key={file.fileId} href={file.url} target="_blank" rel="noreferrer" className="block rounded-md border border-violet-200 px-3 py-2 text-sm text-violet-800 hover:bg-violet-50">
+                      {file.nome}
+                    </a>
+                  ))}
+                </div>
+              </div>
+            )}
+          </Card>
         </div>
-      </Card>
+      )}
+    </div>
+  );
+}
+
+function Detail({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-xl border border-violet-200 bg-violet-50/60 p-3">
+      <p className="text-xs font-medium uppercase text-violet-950/50">{label}</p>
+      <p className="mt-1 break-words text-sm text-violet-950">{value}</p>
     </div>
   );
 }
