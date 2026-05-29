@@ -1,0 +1,86 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+    function userDoc() {
+      return get(/databases/$(database)/documents/usuarios/$(request.auth.uid));
+    }
+    function isAdminGeral() {
+      return signedIn() && userDoc().data.role == "adminGeral" && userDoc().data.ativo == true;
+    }
+    function sameCompany(empresaId) {
+      return signedIn() && userDoc().data.ativo == true && (isAdminGeral() || userDoc().data.empresaId == empresaId);
+    }
+    function canManage(empresaId) {
+      return sameCompany(empresaId) && userDoc().data.role in ["adminGeral", "empresaAdmin"];
+    }
+    function canOperate(empresaId) {
+      return sameCompany(empresaId) && userDoc().data.role in ["adminGeral", "empresaAdmin", "operador"];
+    }
+    function publicEvent(eventoId) {
+      return exists(/databases/$(database)/documents/eventos/$(eventoId)) &&
+        get(/databases/$(database)/documents/eventos/$(eventoId)).data.status == "ativo";
+    }
+    function publicForm(eventoId) {
+      return exists(/databases/$(database)/documents/formularios/$(eventoId)) &&
+        get(/databases/$(database)/documents/formularios/$(eventoId)).data.publicado == true;
+    }
+    function publicEventCompany(eventoId) {
+      return get(/databases/$(database)/documents/eventos/$(eventoId)).data.empresaId;
+    }
+
+    match /empresas/{id} {
+      allow read: if sameCompany(id);
+      allow create: if signedIn() && request.auth.uid == id;
+      allow update: if canManage(id);
+      allow delete: if isAdminGeral();
+    }
+
+    match /usuarios/{id} {
+      allow read: if signedIn() && (request.auth.uid == id || isAdminGeral() || userDoc().data.empresaId == resource.data.empresaId);
+      allow create: if signedIn() && request.auth.uid == id;
+      allow update: if canManage(resource.data.empresaId);
+      allow delete: if isAdminGeral();
+    }
+
+    match /eventos/{id} {
+      allow read: if sameCompany(resource.data.empresaId) || resource.data.status == "ativo";
+      allow create: if canManage(request.resource.data.empresaId);
+      allow update, delete: if canManage(resource.data.empresaId);
+    }
+
+    match /formularios/{id} {
+      allow read: if sameCompany(resource.data.empresaId) || (resource.data.publicado == true && publicEvent(resource.data.eventoId));
+      allow create: if canManage(request.resource.data.empresaId);
+      allow update, delete: if canManage(resource.data.empresaId) &&
+        (!request.resource.data.publicado || request.resource.data.emailObrigatorio == true);
+    }
+
+    match /inscricoes/{id} {
+      allow read: if canOperate(resource.data.empresaId);
+      allow create: if publicEvent(request.resource.data.eventoId) &&
+        publicForm(request.resource.data.eventoId) &&
+        request.resource.data.empresaId == publicEventCompany(request.resource.data.eventoId) &&
+        request.resource.data.email is string &&
+        request.resource.data.qrToken is string &&
+        request.resource.data.codigoConvite is string &&
+        request.resource.data.checkin.realizado == false;
+      allow update: if canOperate(resource.data.empresaId);
+      allow delete: if canManage(resource.data.empresaId);
+    }
+
+    match /checkins/{id} {
+      allow read: if canOperate(resource.data.empresaId);
+      allow create: if canOperate(request.resource.data.empresaId);
+      allow update, delete: if isAdminGeral();
+    }
+
+    match /logs/{id} {
+      allow read: if sameCompany(resource.data.empresaId);
+      allow create: if signedIn() || request.resource.data.usuarioId == "public-form";
+      allow update, delete: if false;
+    }
+  }
+}

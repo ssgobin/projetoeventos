@@ -29,8 +29,10 @@ SMTP_PORT=587
 SMTP_USER=email_do_sistema@gmail.com
 SMTP_PASS=senha_de_app_do_gmail
 SMTP_FROM_NAME=Sistema de Eventos
-FIREBASE_SERVICE_ACCOUNT_JSON={"type":"service_account","project_id":"projetoeventos-c6466"}
+FIREBASE_SERVICE_ACCOUNT_JSON={"type":"service_account","project_id":"projetoeventos-c6466","private_key_id":"...","private_key":"-----BEGIN PRIVATE KEY-----\\n...\\n-----END PRIVATE KEY-----\\n","client_email":"firebase-adminsdk-...@projetoeventos-c6466.iam.gserviceaccount.com","client_id":"...","auth_uri":"https://accounts.google.com/o/oauth2/auth","token_uri":"https://oauth2.googleapis.com/token","auth_provider_x509_cert_url":"https://www.googleapis.com/oauth2/v1/certs","client_x509_cert_url":"...","universe_domain":"googleapis.com"}
 ```
+
+Para obter esse JSON, gere uma chave em Firebase Console > Configuracoes do projeto > Contas de servico > Gerar nova chave privada. Cole o conteudo inteiro em uma linha no `.env` local e nas variaveis de ambiente da Netlify.
 
 3. Rode localmente com Netlify Dev:
 

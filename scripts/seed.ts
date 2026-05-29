@@ -1,11 +1,38 @@
 import admin from "firebase-admin";
 
-const serviceAccount = process.env.FIREBASE_SERVICE_ACCOUNT_JSON;
+function getServiceAccount() {
+  const rawServiceAccount = process.env.FIREBASE_SERVICE_ACCOUNT_JSON;
+  if (!rawServiceAccount) return undefined;
+
+  try {
+    const serviceAccount = JSON.parse(rawServiceAccount) as Record<string, string | undefined>;
+    const projectId = serviceAccount.project_id || serviceAccount.projectId;
+    const clientEmail = serviceAccount.client_email || serviceAccount.clientEmail;
+    const privateKey = serviceAccount.private_key || serviceAccount.privateKey;
+
+    if (!projectId || !clientEmail || !privateKey) {
+      throw new Error('FIREBASE_SERVICE_ACCOUNT_JSON precisa conter "project_id", "client_email" e "private_key".');
+    }
+
+    return {
+      projectId,
+      clientEmail,
+      privateKey: privateKey.replace(/\\n/g, "\n"),
+    };
+  } catch (error) {
+    if (error instanceof SyntaxError) {
+      throw new Error("FIREBASE_SERVICE_ACCOUNT_JSON nao e um JSON valido. Cole o JSON completo da conta de servico em uma unica linha.", { cause: error });
+    }
+    throw error;
+  }
+}
+
+const serviceAccount = getServiceAccount();
 
 if (!admin.apps.length) {
   admin.initializeApp(
     serviceAccount
-      ? { credential: admin.credential.cert(JSON.parse(serviceAccount)), projectId: "projetoeventos-c6466" }
+      ? { credential: admin.credential.cert(serviceAccount), projectId: "projetoeventos-c6466" }
       : { projectId: "projetoeventos-c6466" }
   );
 }

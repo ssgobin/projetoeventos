@@ -1,8 +1,8 @@
-import { assertSameCompany, getAdmin, getAuthedUser, response } from "./_admin";
+import { assertSameCompany, errorStatus, getAdmin, getAuthedUser, getAuthHeader, response } from "./_admin";
 
 export async function handler(event: { body?: string; headers: Record<string, string | undefined> }) {
   try {
-    const auth = await getAuthedUser(event.headers.authorization);
+    const auth = await getAuthedUser(getAuthHeader(event.headers));
     const body = JSON.parse(event.body || "{}");
     const admin = getAdmin();
     const db = admin.firestore();
@@ -49,6 +49,6 @@ export async function handler(event: { body?: string; headers: Record<string, st
     if (inscricao.checkin?.realizado) return response(200, { status: "ja_realizado", inscricao });
     return response(200, { status: "valido", inscricao });
   } catch (err) {
-    return response(403, { error: err instanceof Error ? err.message : "Falha na validacao" });
+    return response(errorStatus(err), { error: err instanceof Error ? err.message : "Falha na validacao" });
   }
 }

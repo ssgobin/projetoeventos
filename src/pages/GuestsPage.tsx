@@ -67,8 +67,12 @@ export default function GuestsPage() {
   async function resend(guest: Inscricao) {
     const token = await firebaseUser?.getIdToken();
     if (!token) return;
-    await resendInviteEmail(guest, token);
-    notify({ type: "success", title: "Convite reenviado", description: `Enviamos o convite para ${guest.email}.` });
+    try {
+      await resendInviteEmail(guest, token);
+      notify({ type: "success", title: "Convite reenviado", description: `Enviamos o convite para ${guest.email}.` });
+    } catch (error) {
+      notify({ type: "error", title: "Falha ao reenviar", description: error instanceof Error ? error.message : "Tente novamente em instantes." });
+    }
   }
 
   return (

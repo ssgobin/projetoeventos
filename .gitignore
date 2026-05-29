@@ -1,5 +1,12 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+dist-ssr/
+
 # Logs
-logs
+logs/
 *.log
 npm-debug.log*
 yarn-debug.log*
@@ -7,26 +14,29 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
-node_modules
-dist
-dist-ssr
-*.local
+# Local environment and secrets
+.env
+.env.*
+!.env.example
+!.env*.example
+serviceAccount*.json
+*service-account*.json
+firebase-service-account*.json
 
-# Editor directories and files
+# Netlify local state
+.netlify/
+
+# OS and editor files
+.DS_Store
+Thumbs.db
+.idea/
 .vscode/*
 !.vscode/extensions.json
-.idea
-.DS_Store
 *.suo
 *.ntvs*
 *.njsproj
 *.sln
 *.sw?
 
-# Local Netlify folder
-.netlify
-.env
-.env.example
-firestore.rules
-firestore.indexes.json
-
+# Misc
+*.local
