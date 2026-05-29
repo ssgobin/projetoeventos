@@ -27,7 +27,6 @@ dist-ssr
 .netlify
 .env
 .env.example
-firebase.json
 firestore.rules
 firestore.indexes.json
 
