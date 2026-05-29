@@ -22,13 +22,18 @@ export function validateFile(file: File, options: { maxMb?: number; imagesOnly?:
 
 export async function compressImageIfPossible(file: File) {
   if (!imageTypes.includes(file.type) || file.type === "image/gif") return file;
-  return imageCompression(file, { maxSizeMB: 1.5, maxWidthOrHeight: 1800, useWebWorker: true });
+  const compressed = await imageCompression(file, { maxSizeMB: 1.5, maxWidthOrHeight: 1800, useWebWorker: true });
+  return compressed instanceof File ? compressed : new File([compressed], file.name, { type: file.type, lastModified: Date.now() });
 }
 
 export async function uploadFile(file: File, options: { imagesOnly?: boolean; maxMb?: number } = {}) {
   validateFile(file, options);
   const finalFile = options.imagesOnly ? await compressImageIfPossible(file) : file;
-  const result = await storage.createFile(appwriteConfig.bucketId, ID.unique(), finalFile);
+  const result = await storage.createFile({
+    bucketId: appwriteConfig.bucketId,
+    fileId: ID.unique(),
+    file: finalFile,
+  });
   return { fileId: result.$id, url: getFilePreview(result.$id), nome: file.name };
 }
 

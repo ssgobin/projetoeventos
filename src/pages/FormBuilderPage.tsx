@@ -131,8 +131,13 @@ export default function FormBuilderPage() {
 
   async function headerUpload(file?: File) {
     if (!file || !formulario) return;
-    const uploaded = await uploadFile(file, { imagesOnly: true, maxMb: 6 });
-    setFormulario({ ...formulario, headerImageUrl: uploaded.url, headerImageFileId: uploaded.fileId });
+    try {
+      const uploaded = await uploadFile(file, { imagesOnly: true, maxMb: 6 });
+      setFormulario({ ...formulario, headerImageUrl: uploaded.url, headerImageFileId: uploaded.fileId });
+      notify({ type: "success", title: "Imagem enviada", description: "A prévia do formulário foi atualizada." });
+    } catch (error) {
+      notify({ type: "error", title: "Falha no upload", description: error instanceof Error ? error.message : "Tente enviar outro arquivo." });
+    }
   }
 
   if (!formulario) return <p className="text-sm text-violet-950/60">Carregando formulário...</p>;
