@@ -84,6 +84,16 @@ export interface Formulario {
   tema: {
     corPrincipal: string;
     modo: ThemeMode;
+    backgroundColor?: string;
+    cardBackgroundColor?: string;
+    titleColor?: string;
+    textColor?: string;
+    labelColor?: string;
+    inputBackgroundColor?: string;
+    inputTextColor?: string;
+    inputBorderColor?: string;
+    buttonBackgroundColor?: string;
+    buttonTextColor?: string;
   };
   atualizadoEm: Timestamp;
 }
