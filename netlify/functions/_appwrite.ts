@@ -20,7 +20,7 @@ export function getAppwriteHeaders(contentType?: string) {
 }
 
 export function appwritePreviewUrl(fileId: string) {
-  return `${appwriteConfig.endpoint}/storage/buckets/${appwriteConfig.bucketId}/files/${fileId}/preview?width=1600&height=900&project=${appwriteConfig.projectId}`;
+  return `/.netlify/functions/viewFile?fileId=${encodeURIComponent(fileId)}&mode=preview`;
 }
 
 export function jsonResponse(statusCode: number, body: unknown) {

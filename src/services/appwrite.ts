@@ -1,11 +1,5 @@
 import imageCompression from "browser-image-compression";
 
-const appwriteConfig = {
-  endpoint: "https://nyc.cloud.appwrite.io/v1",
-  projectId: "6a199b240039ee847a5e",
-  bucketId: "6a199b38001ad007a77a",
-};
-
 const imageTypes = ["image/jpeg", "image/png", "image/webp", "image/gif"];
 const fileTypes = [...imageTypes, "application/pdf"];
 
@@ -41,11 +35,11 @@ export async function uploadFile(file: File, options: { imagesOnly?: boolean; ma
 }
 
 export function getFilePreview(fileId: string) {
-  return `${appwriteConfig.endpoint}/storage/buckets/${appwriteConfig.bucketId}/files/${fileId}/preview?width=1600&height=900&project=${appwriteConfig.projectId}`;
+  return `/.netlify/functions/viewFile?fileId=${encodeURIComponent(fileId)}&mode=preview`;
 }
 
 export function getFileView(fileId: string) {
-  return `${appwriteConfig.endpoint}/storage/buckets/${appwriteConfig.bucketId}/files/${fileId}/view?project=${appwriteConfig.projectId}`;
+  return `/.netlify/functions/viewFile?fileId=${encodeURIComponent(fileId)}&mode=view`;
 }
 
 export async function deleteFile(fileId: string) {

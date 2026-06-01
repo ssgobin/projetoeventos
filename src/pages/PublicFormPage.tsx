@@ -6,7 +6,7 @@ import { useParams } from "react-router-dom";
 import { Button } from "../components/ui/button";
 import { Card } from "../components/ui/card";
 import { Input, Textarea } from "../components/ui/input";
-import { uploadFile } from "../services/appwrite";
+import { getFilePreview, uploadFile } from "../services/appwrite";
 import { sendInviteEmail } from "../services/email";
 import { db } from "../services/firebase";
 import type { CampoFormulario, Evento, Formulario, InscricaoArquivo } from "../types";
@@ -138,9 +138,9 @@ export default function PublicFormPage() {
   return (
     <main className="min-h-screen px-4 py-8" style={{ backgroundColor: theme.backgroundColor }}>
       <Card className="mx-auto max-w-2xl animate-fade-up overflow-hidden p-0" style={{ backgroundColor: theme.cardBackgroundColor, borderColor: theme.inputBorderColor }}>
-        {(formulario.headerImageUrl || event.bannerUrl) && <img src={formulario.headerImageUrl || event.bannerUrl} className="h-56 w-full object-cover" alt="" />}
+        {(formulario.headerImageFileId || formulario.headerImageUrl || event.bannerFileId || event.bannerUrl) && <img src={formulario.headerImageFileId ? getFilePreview(formulario.headerImageFileId) : formulario.headerImageUrl || (event.bannerFileId ? getFilePreview(event.bannerFileId) : event.bannerUrl)} className="h-56 w-full object-cover" alt="" />}
         <form className="p-6" onSubmit={submit}>
-          {event.logoUrl && <img src={event.logoUrl} className="mb-4 h-14 w-14 rounded-md object-cover" alt="" />}
+          {(event.logoFileId || event.logoUrl) && <img src={event.logoFileId ? getFilePreview(event.logoFileId) : event.logoUrl} className="mb-4 h-14 w-14 rounded-md object-cover" alt="" />}
           <h1 className="text-3xl font-medium" style={{ color: theme.titleColor }}>{formulario.titulo}</h1>
           <p className="mt-2" style={{ color: theme.textColor }}>{formulario.descricao}</p>
           <div className="mt-6 space-y-4">

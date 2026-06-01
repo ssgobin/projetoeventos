@@ -7,7 +7,7 @@ import { Card, CardTitle } from "../components/ui/card";
 import { Input, Label, Textarea } from "../components/ui/input";
 import { useFeedback } from "../contexts/FeedbackContext";
 import { slugify } from "../lib/utils";
-import { uploadFile } from "../services/appwrite";
+import { getFilePreview, uploadFile } from "../services/appwrite";
 import { db } from "../services/firebase";
 import type { CampoFormulario, FieldType, Formulario } from "../types";
 
@@ -344,7 +344,7 @@ export default function FormBuilderPage() {
                 <Textarea value={formulario.descricao} onChange={(event) => setFormulario({ ...formulario, descricao: event.target.value })} />
               </div>
             </div>
-            {formulario.headerImageUrl && <img src={formulario.headerImageUrl} className="h-44 w-full rounded-lg object-cover" alt="" />}
+            {(formulario.headerImageFileId || formulario.headerImageUrl) && <img src={formulario.headerImageFileId ? getFilePreview(formulario.headerImageFileId) : formulario.headerImageUrl} className="h-44 w-full rounded-lg object-cover" alt="" />}
           </Card>
         </WithPreview>
       )}
@@ -444,7 +444,7 @@ function FormPreview({ formulario, theme, compact = false }: { formulario: Formu
       <CardTitle>Prévia</CardTitle>
       <div className="mt-4 overflow-hidden rounded-xl border p-4" style={{ backgroundColor: theme.backgroundColor, borderColor: theme.inputBorderColor }}>
         <div className="overflow-hidden rounded-xl border" style={{ backgroundColor: theme.cardBackgroundColor, borderColor: theme.inputBorderColor }}>
-          {formulario.headerImageUrl && <img src={formulario.headerImageUrl} className={`${compact ? "h-28" : "h-48"} w-full object-cover`} alt="" />}
+          {(formulario.headerImageFileId || formulario.headerImageUrl) && <img src={formulario.headerImageFileId ? getFilePreview(formulario.headerImageFileId) : formulario.headerImageUrl} className={`${compact ? "h-28" : "h-48"} w-full object-cover`} alt="" />}
           <div className={compact ? "p-4" : "p-6"}>
             <h2 className={`${compact ? "text-lg" : "text-2xl"} font-medium`} style={{ color: theme.titleColor }}>{formulario.titulo}</h2>
             <p className="mt-1 text-sm" style={{ color: theme.textColor }}>{formulario.descricao}</p>

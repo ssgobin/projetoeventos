@@ -9,6 +9,7 @@ import { Card } from "../components/ui/card";
 import { useAuth } from "../contexts/AuthContext";
 import { useFeedback } from "../contexts/FeedbackContext";
 import { formatDateTime } from "../lib/utils";
+import { getFilePreview } from "../services/appwrite";
 import { db } from "../services/firebase";
 import type { Evento } from "../types";
 
@@ -90,8 +91,8 @@ export default function EventsPage() {
           {events.map((event, index) => (
             <Card key={event.id} className="animate-fade-up overflow-hidden p-0 transition duration-300 hover:-translate-y-1 hover:shadow-[0_18px_48px_rgba(76,29,149,0.12)]" style={{ animationDelay: `${index * 45}ms` }}>
               <div className="relative m-3 h-56 overflow-hidden rounded-xl bg-violet-100">
-                {event.bannerUrl ? (
-                  <img src={event.bannerUrl} alt="" className="h-full w-full object-cover transition duration-500 hover:scale-105" />
+                {(event.bannerFileId || event.bannerUrl) ? (
+                  <img src={event.bannerFileId ? getFilePreview(event.bannerFileId) : event.bannerUrl} alt="" className="h-full w-full object-cover transition duration-500 hover:scale-105" />
                 ) : (
                   <div className="flex h-full items-center justify-center bg-violet-50 text-violet-700">
                     <FileText className="h-10 w-10" />

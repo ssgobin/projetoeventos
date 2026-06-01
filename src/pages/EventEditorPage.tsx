@@ -10,7 +10,7 @@ import { Card, CardTitle } from "../components/ui/card";
 import { Input, Label, Textarea } from "../components/ui/input";
 import { useAuth } from "../contexts/AuthContext";
 import { useFeedback } from "../contexts/FeedbackContext";
-import { uploadFile } from "../services/appwrite";
+import { getFilePreview, uploadFile } from "../services/appwrite";
 import { db } from "../services/firebase";
 import type { Evento } from "../types";
 import { eventSchema } from "../validations/schemas";
@@ -179,12 +179,12 @@ export default function EventEditorPage() {
           <CardTitle>Imagens</CardTitle>
           <p className="mt-1 text-sm text-violet-950/60">Envie o banner e o logo que serão exibidos no evento e no convite.</p>
           <div className="mt-4 space-y-4">
-            {event?.bannerUrl && <img src={event.bannerUrl} alt="" className="h-36 w-full rounded-md object-cover" />}
+            {(event?.bannerFileId || event?.bannerUrl) && <img src={event.bannerFileId ? getFilePreview(event.bannerFileId) : event.bannerUrl} alt="" className="h-36 w-full rounded-md object-cover" />}
             <label className="flex cursor-pointer items-center justify-center gap-2 rounded-md border border-dashed border-violet-300 bg-violet-50/70 p-4 text-sm text-violet-900 transition hover:bg-violet-50">
               <ImagePlus className="h-4 w-4" /> {uploading === "banner" ? "Enviando..." : "Enviar banner"}
               <input type="file" accept="image/*" className="hidden" onChange={(event) => handleImage(event.target.files?.[0], "banner")} />
             </label>
-            {event?.logoUrl && <img src={event.logoUrl} alt="" className="h-20 w-20 rounded-md object-cover" />}
+            {(event?.logoFileId || event?.logoUrl) && <img src={event.logoFileId ? getFilePreview(event.logoFileId) : event.logoUrl} alt="" className="h-20 w-20 rounded-md object-cover" />}
             <label className="flex cursor-pointer items-center justify-center gap-2 rounded-md border border-dashed border-violet-300 bg-violet-50/70 p-4 text-sm text-violet-900 transition hover:bg-violet-50">
               <ImagePlus className="h-4 w-4" /> {uploading === "logo" ? "Enviando..." : "Enviar logo"}
               <input type="file" accept="image/*" className="hidden" onChange={(event) => handleImage(event.target.files?.[0], "logo")} />
