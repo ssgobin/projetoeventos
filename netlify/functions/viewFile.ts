@@ -11,7 +11,7 @@ export async function handler(event: { queryStringParameters?: Record<string, st
 
   try {
     const fileId = event.queryStringParameters?.fileId;
-    const mode = event.queryStringParameters?.mode === "view" ? "view" : "preview";
+    const mode = "view";
     if (!fileId) {
       return {
         statusCode: 400,
@@ -20,8 +20,7 @@ export async function handler(event: { queryStringParameters?: Record<string, st
       };
     }
 
-    const params = mode === "preview" ? "?width=1600&height=900" : "";
-    const response = await fetch(`${appwriteConfig.endpoint}/storage/buckets/${appwriteConfig.bucketId}/files/${encodeURIComponent(fileId)}/${mode}${params}`, {
+    const response = await fetch(`${appwriteConfig.endpoint}/storage/buckets/${appwriteConfig.bucketId}/files/${encodeURIComponent(fileId)}/${mode}`, {
       headers: getAppwriteHeaders(),
     });
 
