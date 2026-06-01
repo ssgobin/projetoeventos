@@ -1,4 +1,4 @@
-import { buildInviteHtml, getTransport } from "./_email";
+import { buildInviteEmail, getTransport } from "./_email";
 import { getAdmin, response } from "./_admin";
 
 export async function handler(event: { body?: string }) {
@@ -14,12 +14,13 @@ export async function handler(event: { body?: string }) {
     const eventoSnap = await db.collection("eventos").doc(inscricao.eventoId).get();
     if (!eventoSnap.exists) return response(404, { error: "Evento nao encontrado" });
     const evento = eventoSnap.data()!;
-    const html = await buildInviteHtml(evento, inscricao);
+    const inviteEmail = await buildInviteEmail(evento, inscricao);
     await getTransport().sendMail({
       from: `"${process.env.SMTP_FROM_NAME || "Sistema de Eventos"}" <${process.env.SMTP_USER}>`,
       to: inscricao.email,
       subject: `Convite confirmado - ${evento.nome}`,
-      html,
+      html: inviteEmail.html,
+      attachments: inviteEmail.attachments,
     });
     await inscricaoRef.update({ emailEnviado: true });
     await db.collection("logs").add({
