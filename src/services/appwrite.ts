@@ -1,4 +1,3 @@
-import { Client, ID, Storage } from "appwrite";
 import imageCompression from "browser-image-compression";
 
 const appwriteConfig = {
@@ -6,9 +5,6 @@ const appwriteConfig = {
   projectId: "6a199b240039ee847a5e",
   bucketId: "6a199b38001ad007a77a",
 };
-
-const client = new Client().setEndpoint(appwriteConfig.endpoint).setProject(appwriteConfig.projectId);
-const storage = new Storage(client);
 
 const imageTypes = ["image/jpeg", "image/png", "image/webp", "image/gif"];
 const fileTypes = [...imageTypes, "application/pdf"];
@@ -29,24 +25,38 @@ export async function compressImageIfPossible(file: File) {
 export async function uploadFile(file: File, options: { imagesOnly?: boolean; maxMb?: number } = {}) {
   validateFile(file, options);
   const finalFile = options.imagesOnly ? await compressImageIfPossible(file) : file;
-  const result = await storage.createFile({
-    bucketId: appwriteConfig.bucketId,
-    fileId: ID.unique(),
-    file: finalFile,
+  const formData = new FormData();
+  formData.append("fileId", crypto.randomUUID());
+  formData.append("file", finalFile);
+
+  const response = await fetch("/.netlify/functions/uploadFile", {
+    method: "POST",
+    body: formData,
   });
-  return { fileId: result.$id, url: getFilePreview(result.$id), nome: file.name };
+
+  const result = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(result.error || "Nao foi possivel enviar o arquivo.");
+
+  return { fileId: result.fileId as string, url: result.url as string, nome: file.name };
 }
 
 export function getFilePreview(fileId: string) {
-  return storage.getFilePreview(appwriteConfig.bucketId, fileId, 1600, 900).toString();
+  return `${appwriteConfig.endpoint}/storage/buckets/${appwriteConfig.bucketId}/files/${fileId}/preview?width=1600&height=900&project=${appwriteConfig.projectId}`;
 }
 
 export function getFileView(fileId: string) {
-  return storage.getFileView(appwriteConfig.bucketId, fileId).toString();
+  return `${appwriteConfig.endpoint}/storage/buckets/${appwriteConfig.bucketId}/files/${fileId}/view?project=${appwriteConfig.projectId}`;
 }
 
 export async function deleteFile(fileId: string) {
-  await storage.deleteFile(appwriteConfig.bucketId, fileId);
+  const response = await fetch("/.netlify/functions/deleteFile", {
+    method: "DELETE",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ fileId }),
+  });
+
+  const result = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(result.error || "Nao foi possivel excluir o arquivo.");
 }
 
 export async function updateFile(oldFileId: string | undefined, file: File, options: { imagesOnly?: boolean; maxMb?: number } = {}) {
