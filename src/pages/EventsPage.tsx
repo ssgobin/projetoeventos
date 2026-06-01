@@ -1,5 +1,5 @@
-import { collection, deleteDoc, doc, getDocs, orderBy, query, where } from "firebase/firestore";
-import { Copy, Edit, FileText, MapPin, QrCode, Trash2, Users } from "lucide-react";
+import { collection, doc, getDocs, orderBy, query, where, writeBatch } from "firebase/firestore";
+import { Copy, Edit, FileText, Loader2, MapPin, QrCode, Trash2, Users } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { EmptyState } from "../components/EmptyState";
@@ -16,6 +16,7 @@ export default function EventsPage() {
   const { usuario } = useAuth();
   const { confirmAction, notify } = useFeedback();
   const [events, setEvents] = useState<Evento[]>([]);
+  const [deletingEventId, setDeletingEventId] = useState<string | null>(null);
 
   async function load() {
     if (!usuario) return;
@@ -33,16 +34,37 @@ export default function EventsPage() {
   }, [usuario]);
 
   async function remove(event: Evento) {
+    if (deletingEventId) return;
     const confirmed = await confirmAction({
       title: "Excluir evento?",
-      description: `Você está prestes a excluir "${event.nome}". Esta ação não remove inscrições já exportadas.`,
-      confirmLabel: "Excluir",
+      description: `Você está prestes a excluir "${event.nome}". Todos os confirmados, dados de inscrição e o formulário deste evento serão apagados permanentemente.`,
+      confirmLabel: "Excluir tudo",
       tone: "danger",
     });
     if (!confirmed) return;
-    await deleteDoc(doc(db, "eventos", event.id));
-    await load();
-    notify({ type: "success", title: "Evento excluído", description: "A lista de eventos foi atualizada." });
+
+    setDeletingEventId(event.id);
+    try {
+      const inscricoesSnap = await getDocs(query(collection(db, "inscricoes"), where("eventoId", "==", event.id)));
+      const refs = [
+        ...inscricoesSnap.docs.map((item) => item.ref),
+        doc(db, "formularios", event.id),
+        doc(db, "eventos", event.id),
+      ];
+
+      for (let index = 0; index < refs.length; index += 450) {
+        const batch = writeBatch(db);
+        refs.slice(index, index + 450).forEach((ref) => batch.delete(ref));
+        await batch.commit();
+      }
+
+      await load();
+      notify({ type: "success", title: "Evento excluído", description: `${inscricoesSnap.size} confirmado(s) foram apagados junto com o evento.` });
+    } catch (error) {
+      notify({ type: "error", title: "Falha ao excluir", description: error instanceof Error ? error.message : "Tente novamente em instantes." });
+    } finally {
+      setDeletingEventId(null);
+    }
   }
 
   function copyPublicLink(event: Evento) {
@@ -95,7 +117,10 @@ export default function EventsPage() {
                   <Button size="sm" variant="secondary" asChild><Link to={`/eventos/${event.id}/inscritos`}><Users className="h-4 w-4" />Inscritos</Link></Button>
                   <Button size="sm" variant="secondary" asChild><Link to={`/eventos/${event.id}/checkin`}><QrCode className="h-4 w-4" />Check-in</Link></Button>
                   <Button size="sm" variant="ghost" onClick={() => copyPublicLink(event)}><Copy className="h-4 w-4" />Link</Button>
-                  <Button size="sm" variant="danger" onClick={() => remove(event)}><Trash2 className="h-4 w-4" />Excluir</Button>
+                  <Button size="sm" variant="danger" disabled={deletingEventId === event.id} onClick={() => remove(event)}>
+                    {deletingEventId === event.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+                    {deletingEventId === event.id ? "Excluindo" : "Excluir"}
+                  </Button>
                 </div>
               </div>
             </Card>
