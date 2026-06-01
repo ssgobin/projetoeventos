@@ -21,8 +21,8 @@ export async function buildInviteEmail(evento: FirebaseFirestore.DocumentData, i
           <p><strong>Local:</strong> ${evento.local}</p>
         </div>
         <div style="text-align:center">
-          <img src="cid:${qrCid}" alt="QR Code" width="220" height="220" style="border:1px solid #e5e7eb;border-radius:16px;padding:10px">
-          <p style="font-family:monospace;font-size:22px;letter-spacing:6px;background:#111827;color:white;border-radius:12px;padding:14px 18px;display:inline-block">${inscricao.codigoConvite}</p>
+          <img src="cid:${qrCid}" alt="QR Code" width="220" height="220" style="display:block;margin:0 auto 12px;border:1px solid #e5e7eb;border-radius:16px;padding:10px">
+          <p style="margin:0 auto;font-family:monospace;font-size:22px;letter-spacing:6px;background:#111827;color:white;border-radius:12px;padding:14px 18px;display:inline-block">${inscricao.codigoConvite}</p>
         </div>
         <p style="margin-top:24px;color:#6b7280;font-size:13px">Apresente este QR Code na entrada. O check-in so e confirmado por um operador autenticado.</p>
       </div>

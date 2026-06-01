@@ -1,5 +1,5 @@
 import { collection, getDocs, limit, orderBy, query, startAfter, where, type DocumentData, type QueryDocumentSnapshot } from "firebase/firestore";
-import { Download, Eye, Mail, Search, X } from "lucide-react";
+import { Download, Eye, Loader2, Mail, Search, X } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useParams } from "react-router-dom";
 import * as XLSX from "xlsx";
@@ -23,6 +23,7 @@ export default function GuestsPage() {
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("todos");
   const [selectedGuest, setSelectedGuest] = useState<Inscricao | null>(null);
+  const [resendingGuestId, setResendingGuestId] = useState<string | null>(null);
 
   async function load(reset = false) {
     if (!eventoId) return;
@@ -66,13 +67,17 @@ export default function GuestsPage() {
   }
 
   async function resend(guest: Inscricao) {
+    if (resendingGuestId) return;
     const token = await firebaseUser?.getIdToken();
     if (!token) return;
+    setResendingGuestId(guest.id);
     try {
       await resendInviteEmail(guest, token);
       notify({ type: "success", title: "Convite reenviado", description: `Enviamos o convite para ${guest.email}.` });
     } catch (error) {
       notify({ type: "error", title: "Falha ao reenviar", description: error instanceof Error ? error.message : "Tente novamente em instantes." });
+    } finally {
+      setResendingGuestId(null);
     }
   }
 
@@ -118,7 +123,10 @@ export default function GuestsPage() {
                   <td>
                     <div className="flex flex-wrap gap-2 py-2 pr-4">
                       <Button size="sm" variant="secondary" onClick={() => setSelectedGuest(guest)}><Eye className="h-4 w-4" />Ver</Button>
-                      <Button size="sm" variant="secondary" onClick={() => resend(guest)}><Mail className="h-4 w-4" />Reenviar</Button>
+                      <Button size="sm" variant="secondary" disabled={resendingGuestId === guest.id} onClick={() => resend(guest)}>
+                        {resendingGuestId === guest.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Mail className="h-4 w-4" />}
+                        {resendingGuestId === guest.id ? "Reenviando E-Mail" : "Reenviar"}
+                      </Button>
                     </div>
                   </td>
                 </tr>

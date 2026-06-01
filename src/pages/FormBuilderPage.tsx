@@ -1,6 +1,6 @@
 import { doc, getDoc, serverTimestamp, updateDoc } from "firebase/firestore";
 import { ArrowDown, ArrowUp, Eye, ImagePlus, Plus, Save, Trash2 } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { Button } from "../components/ui/button";
 import { Card, CardTitle } from "../components/ui/card";
@@ -48,6 +48,34 @@ function normalizeField(field: CampoFormulario): CampoFormulario {
   return normalized;
 }
 
+function isEmailField(field: CampoFormulario) {
+  return field.type === "email" || field.name === "email";
+}
+
+function makeEmailField(ordem: number): CampoFormulario {
+  return {
+    id: crypto.randomUUID(),
+    label: "E-mail",
+    name: "email",
+    type: "email",
+    required: true,
+    ordem,
+  };
+}
+
+function enforceRequiredEmail(campos: CampoFormulario[]) {
+  const sorted = [...campos].sort((a, b) => a.ordem - b.ordem);
+  const emailIndex = sorted.findIndex(isEmailField);
+  const next = emailIndex >= 0 ? sorted : [...sorted, makeEmailField(sorted.length + 1)];
+  const enforcedEmailIndex = emailIndex >= 0 ? emailIndex : next.length - 1;
+
+  return next.map((field, index) => ({
+    ...field,
+    ...(index === enforcedEmailIndex ? { name: "email", type: "email" as const, required: true } : {}),
+    ordem: index + 1,
+  }));
+}
+
 export default function FormBuilderPage() {
   const { eventoId } = useParams();
   const { notify } = useFeedback();
@@ -57,19 +85,32 @@ export default function FormBuilderPage() {
   useEffect(() => {
     if (!eventoId) return;
     getDoc(doc(db, "formularios", eventoId)).then((snap) => {
-      setFormulario(snap.exists() ? ({ id: snap.id, ...snap.data(), tema: BRAND_THEME } as Formulario) : null);
+      if (!snap.exists()) {
+        setFormulario(null);
+        return;
+      }
+
+      const data = { id: snap.id, ...snap.data(), tema: BRAND_THEME } as Formulario;
+      setFormulario({ ...data, campos: enforceRequiredEmail(data.campos || []) });
     });
   }, [eventoId]);
 
-  const hasRequiredEmail = useMemo(() => formulario?.campos.some((field) => field.type === "email" && field.required), [formulario]);
-
   function updateField(id: string, patch: Partial<CampoFormulario>) {
-    setFormulario((current) => current && { ...current, campos: current.campos.map((field) => (field.id === id ? { ...field, ...patch } : field)) });
+    setFormulario((current) => {
+      if (!current) return current;
+      const campos = current.campos.map((field) => {
+        if (field.id !== id) return field;
+        const next = { ...field, ...patch };
+        return isEmailField(field) ? { ...next, name: "email", type: "email" as const, required: true } : next;
+      });
+      return { ...current, campos: enforceRequiredEmail(campos) };
+    });
   }
 
   function addField(type: FieldType) {
     setFormulario((current) => {
       if (!current) return current;
+      if (type === "email" && current.campos.some(isEmailField)) return current;
       const label = fieldTypes.find((item) => item.value === type)?.label || "Campo";
       const next: CampoFormulario = {
         id: crypto.randomUUID(),
@@ -99,25 +140,21 @@ export default function FormBuilderPage() {
   async function save(publish = false) {
     if (!formulario) return;
     setError("");
-    if (publish && !hasRequiredEmail) {
-      setError("Para publicar, o formulário precisa ter um campo de e-mail obrigatório.");
-      return;
-    }
 
     try {
-      const campos = formulario.campos.map(normalizeField);
+      const campos = enforceRequiredEmail(formulario.campos).map(normalizeField);
       await updateDoc(doc(db, "formularios", formulario.id), {
         titulo: formulario.titulo,
         descricao: formulario.descricao,
         campos,
-        emailObrigatorio: Boolean(hasRequiredEmail),
+        emailObrigatorio: true,
         publicado: publish ? true : formulario.publicado,
         tema: BRAND_THEME,
         headerImageUrl: formulario.headerImageUrl || null,
         headerImageFileId: formulario.headerImageFileId || null,
         atualizadoEm: serverTimestamp(),
       });
-      setFormulario({ ...formulario, campos, tema: BRAND_THEME, publicado: publish ? true : formulario.publicado });
+      setFormulario({ ...formulario, campos, tema: BRAND_THEME, emailObrigatorio: true, publicado: publish ? true : formulario.publicado });
       notify({
         type: "success",
         title: publish ? "Formulário publicado" : "Rascunho salvo",
@@ -180,7 +217,7 @@ export default function FormBuilderPage() {
           <CardTitle>Campos</CardTitle>
           <div className="mt-4 flex flex-wrap gap-2">
             {fieldTypes.map((type) => (
-              <Button key={type.value} variant="secondary" size="sm" onClick={() => addField(type.value)}>
+              <Button key={type.value} variant="secondary" size="sm" disabled={type.value === "email" && formulario.campos.some(isEmailField)} onClick={() => addField(type.value)}>
                 <Plus className="h-4 w-4" /> {type.label}
               </Button>
             ))}
@@ -195,18 +232,20 @@ export default function FormBuilderPage() {
                 </div>
                 <div>
                   <Label>Tipo</Label>
-                  <select className="h-11 w-full rounded-md border border-violet-200 bg-white px-3 text-sm text-violet-950 outline-none transition focus:border-violet-500 focus:ring-4 focus:ring-violet-100" value={field.type} onChange={(event) => updateField(field.id, { type: event.target.value as FieldType })}>
+                  <select className="h-11 w-full rounded-md border border-violet-200 bg-white px-3 text-sm text-violet-950 outline-none transition focus:border-violet-500 focus:ring-4 focus:ring-violet-100 disabled:cursor-not-allowed disabled:bg-violet-50 disabled:text-violet-950/60" value={field.type} disabled={isEmailField(field)} onChange={(event) => updateField(field.id, { type: event.target.value as FieldType })}>
                     {fieldTypes.map((type) => <option key={type.value} value={type.value}>{type.label}</option>)}
                   </select>
                 </div>
                 <label className="flex items-end gap-2 pb-2 text-sm">
-                  <input type="checkbox" checked={field.required} onChange={(event) => updateField(field.id, { required: event.target.checked })} />
+                  <input type="checkbox" checked={field.required} disabled={isEmailField(field)} onChange={(event) => updateField(field.id, { required: event.target.checked })} />
                   Obrigatório
                 </label>
                 <div className="flex items-end gap-2">
                   <Button type="button" variant="ghost" size="icon" onClick={() => move(field.id, -1)}><ArrowUp className="h-4 w-4" /></Button>
                   <Button type="button" variant="ghost" size="icon" onClick={() => move(field.id, 1)}><ArrowDown className="h-4 w-4" /></Button>
-                  <Button type="button" variant="danger" size="icon" onClick={() => setFormulario({ ...formulario, campos: formulario.campos.filter((item) => item.id !== field.id) })}><Trash2 className="h-4 w-4" /></Button>
+                  {!isEmailField(field) && (
+                    <Button type="button" variant="danger" size="icon" onClick={() => setFormulario({ ...formulario, campos: enforceRequiredEmail(formulario.campos.filter((item) => item.id !== field.id)) })}><Trash2 className="h-4 w-4" /></Button>
+                  )}
                 </div>
                 {hasOptions(field.type) && (
                   <div className="lg:col-span-4">
