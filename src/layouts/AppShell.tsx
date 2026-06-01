@@ -1,4 +1,4 @@
-import { BarChart3, CalendarDays, ClipboardList, LogOut, ScrollText } from "lucide-react";
+import { BarChart3, CalendarDays, ClipboardList, LogOut } from "lucide-react";
 import { useEffect } from "react";
 import { NavLink, Outlet } from "react-router-dom";
 import { Button } from "../components/ui/button";
@@ -8,7 +8,6 @@ import { cn } from "../lib/utils";
 const nav = [
   { to: "/", label: "Dashboard", icon: BarChart3 },
   { to: "/eventos", label: "Eventos", icon: CalendarDays },
-  { to: "/logs", label: "Logs", icon: ScrollText },
 ];
 
 export function AppShell() {
