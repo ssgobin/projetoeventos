@@ -14,7 +14,7 @@ function TrebinCredit({ className }: { className?: string }) {
   return (
     <div className={cn("rounded-xl border border-violet-100 bg-violet-50/70 p-3", className)}>
       <p className="text-[11px] font-medium uppercase tracking-wide text-violet-950/45">Desenvolvido por</p>
-      <img src="/trebin-logo.svg" alt="Trebin" className="mt-2 h-9 w-auto rounded-md object-contain" />
+      <img src="/trebin_logo.png" alt="Trebin" className="mt-2 h-9 w-auto rounded-md object-contain" />
     </div>
   );
 }
