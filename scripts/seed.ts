@@ -64,7 +64,7 @@ async function main() {
   await eventoRef.set({
     empresaId,
     nome: "Summit de Experiencias 2026",
-    descricao: "Evento demo para validar formulario publico, convite e check-in.",
+    descricao: "Evento demo para validar formulario público, convite e check-in.",
     local: "Centro de Convencoes",
     dataEvento: admin.firestore.Timestamp.fromDate(new Date("2026-08-20T19:00:00-03:00")),
     status: "ativo",

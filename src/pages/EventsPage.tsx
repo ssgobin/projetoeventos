@@ -1,5 +1,5 @@
 import { collection, doc, getDocs, orderBy, query, where, writeBatch } from "firebase/firestore";
-import { Copy, Edit, FileText, Loader2, MapPin, QrCode, Trash2, Users } from "lucide-react";
+import { ClipboardList, Copy, Edit, FileText, Loader2, Mail, MapPin, QrCode, Trash2, Users } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { EmptyState } from "../components/EmptyState";
@@ -12,6 +12,39 @@ import { formatDateTime } from "../lib/utils";
 import { getFilePreview } from "../services/appwrite";
 import { db } from "../services/firebase";
 import type { Evento } from "../types";
+
+const eventActions = [
+  {
+    to: (eventId: string) => `/eventos/${eventId}`,
+    icon: Edit,
+    title: "Dados do evento",
+    description: "Nome, data, local e imagens",
+  },
+  {
+    to: (eventId: string) => `/eventos/${eventId}/formulario`,
+    icon: ClipboardList,
+    title: "Formulario público",
+    description: "Campos, tema e publicacao",
+  },
+  {
+    to: (eventId: string) => `/eventos/${eventId}/convite`,
+    icon: Mail,
+    title: "Convite e e-mail",
+    description: "Tela final, cores e mensagem",
+  },
+  {
+    to: (eventId: string) => `/eventos/${eventId}/inscritos`,
+    icon: Users,
+    title: "Inscritos",
+    description: "Lista, reenvio e exportacao",
+  },
+  {
+    to: (eventId: string) => `/eventos/${eventId}/checkin`,
+    icon: QrCode,
+    title: "Check-in",
+    description: "Validar QR Code na entrada",
+  },
+];
 
 export default function EventsPage() {
   const { usuario } = useAuth();
@@ -81,7 +114,7 @@ export default function EventsPage() {
           <h1 className="page-title">Sua agenda de experiências</h1>
           <p className="page-description">Gerencie publicação, visual, formulários, inscritos e check-in com a organização de uma vitrine premium.</p>
         </div>
-        <Button asChild><Link to="/eventos/novo">Novo evento</Link></Button>
+        <Button asChild><Link to="/eventos/novo">Criar evento</Link></Button>
       </div>
 
       {events.length === 0 ? (
@@ -112,16 +145,32 @@ export default function EventsPage() {
                   <p>{formatDateTime(event.dataEvento)}</p>
                   <p className="flex items-center gap-2"><MapPin className="h-4 w-4 text-violet-400" />{event.local}</p>
                 </div>
-                <div className="grid grid-cols-2 gap-2 pt-1">
-                  <Button size="sm" variant="secondary" asChild><Link to={`/eventos/${event.id}`}><Edit className="h-4 w-4" />Editar</Link></Button>
-                  <Button size="sm" variant="secondary" asChild><Link to={`/eventos/${event.id}/formulario`}><FileText className="h-4 w-4" />Formulário</Link></Button>
-                  <Button size="sm" variant="secondary" asChild><Link to={`/eventos/${event.id}/inscritos`}><Users className="h-4 w-4" />Inscritos</Link></Button>
-                  <Button size="sm" variant="secondary" asChild><Link to={`/eventos/${event.id}/checkin`}><QrCode className="h-4 w-4" />Check-in</Link></Button>
-                  <Button size="sm" variant="ghost" onClick={() => copyPublicLink(event)}><Copy className="h-4 w-4" />Link</Button>
-                  <Button size="sm" variant="danger" disabled={deletingEventId === event.id} onClick={() => remove(event)}>
-                    {deletingEventId === event.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
-                    {deletingEventId === event.id ? "Excluindo" : "Excluir"}
-                  </Button>
+                <div className="space-y-2 pt-1">
+                  <p className="text-xs font-medium uppercase tracking-wide text-violet-950/45">Gerenciar</p>
+                  <div className="grid gap-2">
+                    {eventActions.map((action) => (
+                      <Link
+                        key={action.title}
+                        to={action.to(event.id)}
+                        className="group flex items-center gap-3 rounded-lg border border-violet-100 bg-white px-3 py-2.5 text-left transition hover:border-violet-200 hover:bg-violet-50"
+                      >
+                        <span className="grid h-9 w-9 shrink-0 place-items-center rounded-md bg-violet-50 text-violet-800 transition group-hover:bg-white">
+                          <action.icon className="h-4 w-4" />
+                        </span>
+                        <span className="min-w-0">
+                          <span className="block text-sm font-medium text-violet-950">{action.title}</span>
+                          <span className="block truncate text-xs text-violet-950/55">{action.description}</span>
+                        </span>
+                      </Link>
+                    ))}
+                  </div>
+                  <div className="grid gap-2 pt-2">
+                    <Button size="sm" variant="secondary" onClick={() => copyPublicLink(event)}><Copy className="h-4 w-4" />Copiar link publico</Button>
+                    <Button className="whitespace-nowrap" size="sm" variant="danger" disabled={deletingEventId === event.id} onClick={() => remove(event)}>
+                      {deletingEventId === event.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+                      {deletingEventId === event.id ? "Excluindo" : "Excluir evento"}
+                    </Button>
+                  </div>
                 </div>
               </div>
             </Card>

@@ -10,6 +10,7 @@ import { getFilePreview, uploadFile } from "../services/appwrite";
 import { sendInviteEmail } from "../services/email";
 import { db } from "../services/firebase";
 import type { CampoFormulario, Evento, Formulario, InscricaoArquivo } from "../types";
+import { getInviteRadius, normalizeInviteTheme } from "../utils/inviteTheme";
 import { isValidCpf, makeInviteCode, makeToken, sanitizeText } from "../utils/security";
 
 function makePublicSignupId(eventoId: string, email: string) {
@@ -117,19 +118,26 @@ export default function PublicFormPage() {
 
   if (!event || !formulario) return <main className="flex min-h-screen items-center justify-center bg-violet-50 text-violet-950">Carregando...</main>;
   const theme = normalizeTheme(formulario.tema);
+  const inviteTheme = normalizeInviteTheme(event.conviteTema, event.corPrincipal);
   if (!formulario.publicado || event.status !== "ativo") return <main className="flex min-h-screen items-center justify-center" style={{ backgroundColor: theme.backgroundColor, color: theme.titleColor }}>Formulário indisponível.</main>;
 
   if (success) {
+    const inviteRadius = getInviteRadius(inviteTheme.shape);
+    const compact = inviteTheme.layout === "compact";
     return (
-      <main className="flex min-h-screen items-center justify-center p-6" style={{ backgroundColor: theme.backgroundColor }}>
-        <Card className="max-w-lg animate-scale-in text-center" style={{ backgroundColor: theme.cardBackgroundColor, borderColor: theme.inputBorderColor }}>
-          <CheckCircle2 className="mx-auto h-12 w-12" style={{ color: theme.buttonBackgroundColor }} />
-          <h1 className="mt-4 text-2xl font-medium" style={{ color: theme.titleColor }}>{event.mensagemSucesso}</h1>
-          <p className="mt-2 text-sm" style={{ color: theme.textColor }}>Guarde o código abaixo. O QR Code também foi enviado para o seu e-mail.</p>
-          <div className="mx-auto mt-5 w-fit rounded-lg p-3 ring-1" style={{ backgroundColor: theme.inputBackgroundColor, borderColor: theme.inputBorderColor }}>
-            <QRCodeCanvas value={success.token} size={180} />
+      <main className="flex min-h-screen items-center justify-center p-6" style={{ backgroundColor: inviteTheme.backgroundColor }}>
+        <Card className="max-w-lg animate-scale-in overflow-hidden p-0 text-center" style={{ backgroundColor: inviteTheme.cardBackgroundColor, borderColor: inviteTheme.borderColor, borderRadius: inviteRadius }}>
+          {inviteTheme.layout === "highlight" && <div className="h-3 w-full" style={{ backgroundColor: inviteTheme.accentColor }} />}
+          <div className={compact ? "p-6" : "p-8"}>
+            <CheckCircle2 className="mx-auto h-12 w-12" style={{ color: inviteTheme.buttonBackgroundColor }} />
+            <p className="mt-4 text-xs font-bold uppercase tracking-[0.18em]" style={{ color: inviteTheme.accentColor }}>Convite confirmado</p>
+            <h1 className="mt-2 text-2xl font-medium" style={{ color: inviteTheme.titleColor }}>{event.mensagemSucesso}</h1>
+            <p className="mt-2 text-sm" style={{ color: inviteTheme.textColor }}>Guarde o codigo abaixo. O QR Code tambem foi enviado para o seu e-mail.</p>
+            <div className="mx-auto mt-5 w-fit p-3 ring-1" style={{ backgroundColor: inviteTheme.qrBackgroundColor, borderColor: inviteTheme.borderColor, borderRadius: Math.max(inviteRadius - 6, 4) }}>
+              <QRCodeCanvas value={success.token} size={180} />
+            </div>
+            <p className="mt-4 px-4 py-3 font-mono text-lg tracking-widest" style={{ backgroundColor: inviteTheme.codeBackgroundColor, color: inviteTheme.codeTextColor, borderRadius: Math.max(inviteRadius - 8, 4) }}>{success.code}</p>
           </div>
-          <p className="mt-4 rounded-md px-4 py-3 font-mono text-lg tracking-widest" style={{ backgroundColor: theme.buttonBackgroundColor, color: theme.buttonTextColor }}>{success.code}</p>
         </Card>
       </main>
     );

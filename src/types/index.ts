@@ -3,6 +3,8 @@ import type { Timestamp } from "firebase/firestore";
 export type Role = "adminGeral" | "empresaAdmin" | "operador";
 export type EventStatus = "ativo" | "inativo" | "encerrado";
 export type ThemeMode = "light";
+export type InviteLayout = "classic" | "highlight" | "compact";
+export type InviteShape = "soft" | "straight" | "pill";
 export type FieldType =
   | "text"
   | "textarea"
@@ -55,6 +57,23 @@ export interface Evento {
   permitirDuplicidadeEmail: boolean;
   mensagemConvite: string;
   mensagemSucesso: string;
+  conviteTema?: {
+    layout?: InviteLayout;
+    shape?: InviteShape;
+    backgroundColor?: string;
+    cardBackgroundColor?: string;
+    accentColor?: string;
+    titleColor?: string;
+    textColor?: string;
+    mutedTextColor?: string;
+    borderColor?: string;
+    detailsBackgroundColor?: string;
+    codeBackgroundColor?: string;
+    codeTextColor?: string;
+    qrBackgroundColor?: string;
+    buttonBackgroundColor?: string;
+    buttonTextColor?: string;
+  };
   criadoEm: Timestamp;
   atualizadoEm: Timestamp;
 }

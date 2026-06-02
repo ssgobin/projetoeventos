@@ -9,6 +9,7 @@ const RegisterPage = lazy(() => import("./pages/RegisterPage"));
 const DashboardPage = lazy(() => import("./pages/DashboardPage"));
 const EventsPage = lazy(() => import("./pages/EventsPage"));
 const EventEditorPage = lazy(() => import("./pages/EventEditorPage"));
+const InviteEditorPage = lazy(() => import("./pages/InviteEditorPage"));
 const FormBuilderPage = lazy(() => import("./pages/FormBuilderPage"));
 const GuestsPage = lazy(() => import("./pages/GuestsPage"));
 const CheckinPage = lazy(() => import("./pages/CheckinPage"));
@@ -28,6 +29,7 @@ function App() {
               <Route path="/eventos" element={<EventsPage />} />
               <Route path="/eventos/novo" element={<EventEditorPage />} />
               <Route path="/eventos/:eventoId" element={<EventEditorPage />} />
+              <Route path="/eventos/:eventoId/convite" element={<InviteEditorPage />} />
               <Route path="/eventos/:eventoId/formulario" element={<FormBuilderPage />} />
               <Route path="/eventos/:eventoId/inscritos" element={<GuestsPage />} />
               <Route path="/eventos/:eventoId/checkin" element={<CheckinPage />} />

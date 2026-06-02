@@ -1,7 +1,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { addDoc, collection, doc, getDoc, serverTimestamp, setDoc, Timestamp, updateDoc } from "firebase/firestore";
 import { ImagePlus, Save } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { useNavigate, useParams } from "react-router-dom";
 import { z } from "zod";
@@ -10,9 +10,10 @@ import { Card, CardTitle } from "../components/ui/card";
 import { Input, Label, Textarea } from "../components/ui/input";
 import { useAuth } from "../contexts/AuthContext";
 import { useFeedback } from "../contexts/FeedbackContext";
-import { getFilePreview, uploadFile } from "../services/appwrite";
+import { getFilePreview, uploadFile, validateFile } from "../services/appwrite";
 import { db } from "../services/firebase";
 import type { Evento } from "../types";
+import { DEFAULT_INVITE_THEME } from "../utils/inviteTheme";
 import { eventSchema } from "../validations/schemas";
 
 type FormData = z.infer<typeof eventSchema>;
@@ -28,9 +29,8 @@ const defaults: FormData = {
   corPrincipal: BRAND_COLOR,
   tema: "light",
   permitirDuplicidadeEmail: false,
-  mensagemConvite: "Estamos felizes em receber você. Apresente o QR Code na entrada do evento.",
-  mensagemSucesso: "Sua inscrição foi confirmada. Enviamos o convite para seu e-mail.",
 };
+
 
 export default function EventEditorPage() {
   const { eventoId } = useParams();
@@ -39,6 +39,9 @@ export default function EventEditorPage() {
   const { notify } = useFeedback();
   const [event, setEvent] = useState<Evento | null>(null);
   const [uploading, setUploading] = useState("");
+  const [pendingImages, setPendingImages] = useState<{ banner?: File; logo?: File }>({});
+  const [pendingPreviews, setPendingPreviews] = useState<{ banner?: string; logo?: string }>({});
+  const pendingPreviewsRef = useRef(pendingPreviews);
   const form = useForm<FormData>({ resolver: zodResolver(eventSchema), defaultValues: defaults });
   const { reset } = form;
 
@@ -54,20 +57,39 @@ export default function EventEditorPage() {
         local: data.local,
         dataEvento: new Date(data.dataEvento.seconds * 1000).toISOString().slice(0, 16),
         status: data.status,
-        corPrincipal: BRAND_COLOR,
+        corPrincipal: data.corPrincipal || BRAND_COLOR,
         tema: "light",
         permitirDuplicidadeEmail: data.permitirDuplicidadeEmail,
-        mensagemConvite: data.mensagemConvite,
-        mensagemSucesso: data.mensagemSucesso,
       });
     });
   }, [eventoId, reset]);
 
+  useEffect(() => {
+    pendingPreviewsRef.current = pendingPreviews;
+  }, [pendingPreviews]);
+
+  useEffect(() => {
+    return () => {
+      Object.values(pendingPreviewsRef.current).forEach((preview) => preview && URL.revokeObjectURL(preview));
+    };
+  }, []);
+
   async function onSubmit(data: FormData) {
     if (!usuario) return;
+    const uploadedImages: Partial<Pick<Evento, "bannerUrl" | "bannerFileId" | "logoUrl" | "logoFileId">> = {};
+    if (!eventoId) {
+      for (const kind of ["banner", "logo"] as const) {
+        const file = pendingImages[kind];
+        if (!file) continue;
+        const uploaded = await uploadFile(file, { imagesOnly: true, maxMb: 6 });
+        uploadedImages[`${kind}Url`] = uploaded.url;
+        uploadedImages[`${kind}FileId`] = uploaded.fileId;
+      }
+    }
     const payload = {
       ...data,
-      corPrincipal: BRAND_COLOR,
+      ...uploadedImages,
+      corPrincipal: data.corPrincipal,
       tema: "light",
       empresaId: event?.empresaId || usuario.empresaId,
       dataEvento: Timestamp.fromDate(new Date(data.dataEvento)),
@@ -79,7 +101,13 @@ export default function EventEditorPage() {
       navigate("/eventos");
       return;
     }
-    const eventRef = await addDoc(collection(db, "eventos"), { ...payload, criadoEm: serverTimestamp() });
+    const eventRef = await addDoc(collection(db, "eventos"), {
+      ...payload,
+      mensagemConvite: "Estamos felizes em receber voce. Apresente o QR Code na entrada do evento.",
+      mensagemSucesso: "Sua inscricao foi confirmada. Enviamos o convite para seu e-mail.",
+      conviteTema: { ...DEFAULT_INVITE_THEME, accentColor: data.corPrincipal, buttonBackgroundColor: data.corPrincipal },
+      criadoEm: serverTimestamp(),
+    });
     await setDoc(doc(db, "formularios", eventRef.id), {
       empresaId: usuario.empresaId,
       eventoId: eventRef.id,
@@ -99,7 +127,22 @@ export default function EventEditorPage() {
   }
 
   async function handleImage(file: File | undefined, kind: "banner" | "logo") {
-    if (!file || !eventoId) return;
+    if (!file) return;
+    if (!eventoId) {
+      try {
+        validateFile(file, { imagesOnly: true, maxMb: 6 });
+        const previewUrl = URL.createObjectURL(file);
+        setPendingImages((current) => ({ ...current, [kind]: file }));
+        setPendingPreviews((current) => {
+          if (current[kind]) URL.revokeObjectURL(current[kind]);
+          return { ...current, [kind]: previewUrl };
+        });
+        notify({ type: "info", title: kind === "banner" ? "Banner selecionado" : "Logo selecionado", description: "A imagem sera enviada quando voce salvar o evento." });
+      } catch {
+        notify({ type: "error", title: "Falha ao selecionar imagem", description: "Verifique o arquivo e tente novamente." });
+      }
+      return;
+    }
     setUploading(kind);
     try {
       const uploaded = await uploadFile(file, { imagesOnly: true, maxMb: 6 });
@@ -108,6 +151,7 @@ export default function EventEditorPage() {
         [`${kind}FileId`]: uploaded.fileId,
         atualizadoEm: serverTimestamp(),
       });
+      setEvent((current) => current && { ...current, [`${kind}Url`]: uploaded.url, [`${kind}FileId`]: uploaded.fileId });
       notify({ type: "success", title: kind === "banner" ? "Banner atualizado" : "Logo atualizado" });
     } catch {
       notify({ type: "error", title: "Falha no upload", description: "Verifique o arquivo e tente novamente." });
@@ -119,9 +163,9 @@ export default function EventEditorPage() {
   return (
     <div className="mx-auto max-w-6xl space-y-8 animate-fade-up">
       <div>
-        <p className="page-kicker">Evento</p>
-        <h1 className="page-title">{eventoId ? "Editar evento" : "Criar evento"}</h1>
-        <p className="page-description">Dados principais, identidade visual e mensagens do convite.</p>
+        <p className="page-kicker">Informacoes do evento</p>
+        <h1 className="page-title">{eventoId ? "Editar dados do evento" : "Criar evento"}</h1>
+        <p className="page-description">Nome, descricao, data, local, status, cor principal e imagens.</p>
       </div>
       <form className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_340px]" onSubmit={form.handleSubmit(onSubmit)}>
         <Card className="grid gap-4 sm:grid-cols-2">
@@ -152,10 +196,10 @@ export default function EventEditorPage() {
           <div className="rounded-xl border border-violet-200 bg-violet-50 p-4">
             <Label>Identidade visual</Label>
             <div className="mt-2 flex items-center gap-3">
-              <span className="h-9 w-9 rounded-md bg-violet-800" />
+              <Input type="color" className="h-10 w-12 p-1" {...form.register("corPrincipal")} />
               <div>
-                <p className="text-sm font-medium text-violet-950">Roxo e branco</p>
-                <p className="text-xs text-violet-950/60">Aplicado automaticamente em páginas e convites.</p>
+                <p className="text-sm font-medium text-violet-950">Cor principal</p>
+                <p className="text-xs text-violet-950/60">Usada como base do evento e dos convites.</p>
               </div>
             </div>
           </div>
@@ -163,28 +207,32 @@ export default function EventEditorPage() {
             <input type="checkbox" {...form.register("permitirDuplicidadeEmail")} />
             Permitir inscrições duplicadas por e-mail
           </label>
-          <div className="sm:col-span-2">
-            <Label>Mensagem do convite</Label>
-            <Textarea {...form.register("mensagemConvite")} />
-          </div>
-          <div className="sm:col-span-2">
-            <Label>Mensagem de sucesso</Label>
-            <Textarea {...form.register("mensagemSucesso")} />
-          </div>
           <Button className="sm:col-span-2" disabled={form.formState.isSubmitting}>
-            <Save className="h-4 w-4" /> Salvar evento
+            <Save className="h-4 w-4" /> Salvar dados do evento
           </Button>
         </Card>
         <Card>
           <CardTitle>Imagens</CardTitle>
           <p className="mt-1 text-sm text-violet-950/60">Envie o banner e o logo que serão exibidos no evento e no convite.</p>
           <div className="mt-4 space-y-4">
-            {(event?.bannerFileId || event?.bannerUrl) && <img src={event.bannerFileId ? getFilePreview(event.bannerFileId) : event.bannerUrl} alt="" className="h-36 w-full rounded-md object-cover" />}
+            {(pendingPreviews.banner || event?.bannerFileId || event?.bannerUrl) && (
+              <img
+                src={pendingPreviews.banner || (event?.bannerFileId ? getFilePreview(event.bannerFileId) : event?.bannerUrl)}
+                alt=""
+                className="h-36 w-full rounded-md object-cover"
+              />
+            )}
             <label className="flex cursor-pointer items-center justify-center gap-2 rounded-md border border-dashed border-violet-300 bg-violet-50/70 p-4 text-sm text-violet-900 transition hover:bg-violet-50">
               <ImagePlus className="h-4 w-4" /> {uploading === "banner" ? "Enviando..." : "Enviar banner"}
               <input type="file" accept="image/*" className="hidden" onChange={(event) => handleImage(event.target.files?.[0], "banner")} />
             </label>
-            {(event?.logoFileId || event?.logoUrl) && <img src={event.logoFileId ? getFilePreview(event.logoFileId) : event.logoUrl} alt="" className="h-20 w-20 rounded-md object-cover" />}
+            {(pendingPreviews.logo || event?.logoFileId || event?.logoUrl) && (
+              <img
+                src={pendingPreviews.logo || (event?.logoFileId ? getFilePreview(event.logoFileId) : event?.logoUrl)}
+                alt=""
+                className="h-20 w-20 rounded-md object-cover"
+              />
+            )}
             <label className="flex cursor-pointer items-center justify-center gap-2 rounded-md border border-dashed border-violet-300 bg-violet-50/70 p-4 text-sm text-violet-900 transition hover:bg-violet-50">
               <ImagePlus className="h-4 w-4" /> {uploading === "logo" ? "Enviando..." : "Enviar logo"}
               <input type="file" accept="image/*" className="hidden" onChange={(event) => handleImage(event.target.files?.[0], "logo")} />

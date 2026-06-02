@@ -280,13 +280,13 @@ export default function FormBuilderPage() {
     <div className="space-y-6">
       <div className="page-header">
         <div>
-          <p className="page-kicker">Formulário</p>
-          <h1 className="page-title">Construtor de formulário</h1>
-          <p className="page-description">Organize configuração, aparência, campos e revisão antes de publicar.</p>
+          <p className="page-kicker">Formulario público</p>
+          <h1 className="page-title">Montar formulario de inscricao</h1>
+          <p className="page-description">Edite textos, imagem, cores, campos e publicacao do formulario público.</p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Button onClick={() => save(false)}><Save className="h-4 w-4" />Salvar rascunho</Button>
-          <Button variant="secondary" onClick={() => save(true)}><Eye className="h-4 w-4" />Publicar</Button>
+          <Button onClick={() => save(false)}><Save className="h-4 w-4" />Salvar formulario</Button>
+          <Button variant="secondary" onClick={() => save(true)}><Eye className="h-4 w-4" />Publicar formulario</Button>
         </div>
       </div>
 
