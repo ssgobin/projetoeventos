@@ -124,7 +124,7 @@ export default function EventsPage() {
         title: "Evento excluido",
         description: failedFileDeletes.length
           ? `${inscricoesSnap.size} confirmado(s) foram apagados. ${failedFileDeletes.length} arquivo(s) do Appwrite nao puderam ser removidos.`
-          : `${inscricoesSnap.size} confirmado(s) e ${fileIds.size} arquivo(s) do Appwrite foram apagados junto com o evento.`,
+          : `${inscricoesSnap.size} confirmado(s) e ${fileIds.size} arquivo(s) do foram apagados junto com o evento.`,
       });
     } catch (error) {
       notify({ type: "error", title: "Falha ao excluir", description: error instanceof Error ? error.message : "Tente novamente em instantes." });
