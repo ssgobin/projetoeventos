@@ -1,4 +1,4 @@
-import { collection, doc, getDocs, orderBy, query, where, writeBatch } from "firebase/firestore";
+import { collection, doc, getDoc, getDocs, orderBy, query, where, writeBatch } from "firebase/firestore";
 import { ClipboardList, Copy, Edit, FileText, Loader2, Mail, MapPin, QrCode, Trash2, Users } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
@@ -9,9 +9,13 @@ import { Card } from "../components/ui/card";
 import { useAuth } from "../contexts/AuthContext";
 import { useFeedback } from "../contexts/FeedbackContext";
 import { formatDateTime } from "../lib/utils";
-import { getFilePreview } from "../services/appwrite";
+import { deleteFile, getFilePreview } from "../services/appwrite";
 import { db } from "../services/firebase";
 import type { Evento } from "../types";
+
+type SignupFile = {
+  fileId?: string;
+};
 
 const eventActions = [
   {
@@ -80,6 +84,28 @@ export default function EventsPage() {
     setDeletingEventId(event.id);
     try {
       const inscricoesSnap = await getDocs(query(collection(db, "inscricoes"), where("eventoId", "==", event.id)));
+      const formularioSnap = await getDoc(doc(db, "formularios", event.id));
+      const fileIds = new Set<string>();
+      if (event.bannerFileId) fileIds.add(event.bannerFileId);
+      if (event.logoFileId) fileIds.add(event.logoFileId);
+      const formulario = formularioSnap.data();
+      if (typeof formulario?.headerImageFileId === "string") fileIds.add(formulario.headerImageFileId);
+      inscricoesSnap.docs.forEach((item) => {
+        const arquivos = item.data().arquivos;
+        if (!Array.isArray(arquivos)) return;
+        arquivos.forEach((arquivo: SignupFile) => {
+          if (arquivo.fileId) fileIds.add(arquivo.fileId);
+        });
+      });
+
+      const failedFileDeletes: string[] = [];
+      await Promise.all(
+        [...fileIds].map((fileId) =>
+          deleteFile(fileId).catch(() => {
+            failedFileDeletes.push(fileId);
+          })
+        )
+      );
       const refs = [
         ...inscricoesSnap.docs.map((item) => item.ref),
         doc(db, "formularios", event.id),
@@ -93,7 +119,13 @@ export default function EventsPage() {
       }
 
       await load();
-      notify({ type: "success", title: "Evento excluído", description: `${inscricoesSnap.size} confirmado(s) foram apagados junto com o evento.` });
+      notify({
+        type: failedFileDeletes.length ? "info" : "success",
+        title: "Evento excluido",
+        description: failedFileDeletes.length
+          ? `${inscricoesSnap.size} confirmado(s) foram apagados. ${failedFileDeletes.length} arquivo(s) do Appwrite nao puderam ser removidos.`
+          : `${inscricoesSnap.size} confirmado(s) e ${fileIds.size} arquivo(s) do Appwrite foram apagados junto com o evento.`,
+      });
     } catch (error) {
       notify({ type: "error", title: "Falha ao excluir", description: error instanceof Error ? error.message : "Tente novamente em instantes." });
     } finally {
