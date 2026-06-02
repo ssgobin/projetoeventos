@@ -124,12 +124,17 @@ export default function PublicFormPage() {
   if (success) {
     const inviteRadius = getInviteRadius(inviteTheme.shape);
     const compact = inviteTheme.layout === "compact";
+    const logoSrc = event.logoFileId ? getFilePreview(event.logoFileId) : event.logoUrl;
     return (
       <main className="flex min-h-screen items-center justify-center p-6" style={{ backgroundColor: inviteTheme.backgroundColor }}>
         <Card className="max-w-lg animate-scale-in overflow-hidden p-0 text-center" style={{ backgroundColor: inviteTheme.cardBackgroundColor, borderColor: inviteTheme.borderColor, borderRadius: inviteRadius }}>
           {inviteTheme.layout === "highlight" && <div className="h-3 w-full" style={{ backgroundColor: inviteTheme.accentColor }} />}
           <div className={compact ? "p-6" : "p-8"}>
-            <CheckCircle2 className="mx-auto h-12 w-12" style={{ color: inviteTheme.buttonBackgroundColor }} />
+            {logoSrc ? (
+              <img src={logoSrc} alt="" className="mx-auto h-14 w-14 object-cover" style={{ borderRadius: Math.max(inviteRadius - 8, 4) }} />
+            ) : (
+              <CheckCircle2 className="mx-auto h-12 w-12" style={{ color: inviteTheme.buttonBackgroundColor }} />
+            )}
             <p className="mt-4 text-xs font-bold uppercase tracking-[0.18em]" style={{ color: inviteTheme.accentColor }}>Convite confirmado</p>
             <h1 className="mt-2 text-2xl font-medium" style={{ color: inviteTheme.titleColor }}>{event.mensagemSucesso}</h1>
             <p className="mt-2 text-sm" style={{ color: inviteTheme.textColor }}>Guarde o codigo abaixo. O QR Code tambem foi enviado para o seu e-mail.</p>

@@ -34,6 +34,13 @@ function getInviteRadius(shape: unknown) {
   return 18;
 }
 
+function absoluteAssetUrl(url?: string) {
+  if (!url) return "";
+  if (/^https?:\/\//i.test(url)) return url;
+  const siteUrl = process.env.URL || process.env.DEPLOY_PRIME_URL || process.env.SITE_URL || "";
+  return siteUrl ? `${siteUrl.replace(/\/$/, "")}${url.startsWith("/") ? url : `/${url}`}` : url;
+}
+
 export async function buildInviteEmail(evento: FirebaseFirestore.DocumentData, inscricao: FirebaseFirestore.DocumentData) {
   const qrCid = `qrcode-${inscricao.codigoConvite}@projetoeventos`;
   const qrBuffer = await QRCode.toBuffer(inscricao.qrToken, { width: 220, margin: 1 });
@@ -44,13 +51,15 @@ export async function buildInviteEmail(evento: FirebaseFirestore.DocumentData, i
   const innerRadius = Math.max(radius - 4, 4);
   const compact = theme.layout === "compact";
   const contentPadding = compact ? 24 : 32;
+  const bannerUrl = absoluteAssetUrl(evento.bannerUrl);
+  const logoUrl = absoluteAssetUrl(evento.logoUrl);
   const html = `
   <div style="margin:0;background:${theme.backgroundColor};padding:32px;font-family:Inter,Arial,sans-serif;color:${theme.titleColor}">
     <div style="max-width:640px;margin:auto;background:${theme.cardBackgroundColor};border-radius:${radius}px;overflow:hidden;border:1px solid ${theme.borderColor}">
       ${theme.layout === "highlight" ? `<div style="height:12px;background:${theme.accentColor}"></div>` : ""}
-      ${evento.bannerUrl ? `<img src="${evento.bannerUrl}" alt="" style="width:100%;height:220px;object-fit:cover;display:block">` : ""}
+      ${bannerUrl ? `<img src="${bannerUrl}" alt="" style="width:100%;height:220px;object-fit:cover;display:block">` : ""}
       <div style="padding:${contentPadding}px">
-        ${evento.logoUrl ? `<img src="${evento.logoUrl}" alt="" style="width:64px;height:64px;border-radius:${innerRadius}px;object-fit:cover">` : ""}
+        ${logoUrl ? `<img src="${logoUrl}" alt="" style="width:64px;height:64px;border-radius:${innerRadius}px;object-fit:cover">` : ""}
         <p style="color:${theme.accentColor};font-weight:700;letter-spacing:.08em;text-transform:uppercase;font-size:12px">Convite confirmado</p>
         <h1 style="margin:8px 0 0;font-size:${compact ? 26 : 30}px;line-height:1.15;color:${theme.titleColor}">${evento.nome}</h1>
         <p style="font-size:16px;color:${theme.textColor}">${evento.mensagemConvite || ""}</p>

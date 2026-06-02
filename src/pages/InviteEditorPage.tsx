@@ -9,6 +9,7 @@ import { Button } from "../components/ui/button";
 import { Card, CardTitle } from "../components/ui/card";
 import { Input, Label, Textarea } from "../components/ui/input";
 import { useFeedback } from "../contexts/FeedbackContext";
+import { getFilePreview } from "../services/appwrite";
 import { db } from "../services/firebase";
 import type { Evento } from "../types";
 import { getInviteRadius, normalizeInviteTheme } from "../utils/inviteTheme";
@@ -79,6 +80,7 @@ export default function InviteEditorPage() {
   }
 
   if (!event) return <p className="text-sm text-violet-950/60">Carregando convite...</p>;
+  const logoSrc = event.logoFileId ? getFilePreview(event.logoFileId) : event.logoUrl;
 
   return (
     <div className="mx-auto max-w-6xl space-y-8 animate-fade-up">
@@ -127,7 +129,7 @@ export default function InviteEditorPage() {
 
         <Card>
           <CardTitle>Previa</CardTitle>
-          <InvitePreview eventName={event.nome} message={previewMessage} successMessage={previewSuccessMessage} theme={previewTheme} />
+          <InvitePreview eventName={event.nome} logoSrc={logoSrc} message={previewMessage} successMessage={previewSuccessMessage} theme={previewTheme} />
         </Card>
       </form>
     </div>
@@ -136,11 +138,13 @@ export default function InviteEditorPage() {
 
 function InvitePreview({
   eventName,
+  logoSrc,
   message,
   successMessage,
   theme,
 }: {
   eventName: string;
+  logoSrc?: string;
   message: string;
   successMessage: string;
   theme: ReturnType<typeof normalizeInviteTheme>;
@@ -154,7 +158,11 @@ function InvitePreview({
       <div className="border" style={{ backgroundColor: theme.cardBackgroundColor, borderColor: theme.borderColor, borderRadius: Math.max(radius - 4, 4), overflow: "hidden" }}>
         {highlight && <div className="h-3" style={{ backgroundColor: theme.accentColor }} />}
         <div className={compact ? "p-4" : "p-5"}>
-          <div className="mb-3 h-10 w-10" style={{ backgroundColor: theme.accentColor, borderRadius: Math.max(radius - 8, 4) }} />
+          {logoSrc ? (
+            <img src={logoSrc} alt="" className="mb-3 h-12 w-12 object-cover" style={{ borderRadius: Math.max(radius - 8, 4) }} />
+          ) : (
+            <div className="mb-3 h-10 w-10" style={{ backgroundColor: theme.accentColor, borderRadius: Math.max(radius - 8, 4) }} />
+          )}
           <p className="text-[10px] font-bold uppercase tracking-[0.18em]" style={{ color: theme.accentColor }}>Convite confirmado</p>
           <h3 className={compact ? "mt-1 text-lg font-medium" : "mt-2 text-xl font-medium"} style={{ color: theme.titleColor }}>{eventName}</h3>
           <p className="mt-2 text-xs leading-relaxed" style={{ color: theme.textColor }}>{message}</p>
