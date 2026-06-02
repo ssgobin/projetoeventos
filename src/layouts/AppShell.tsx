@@ -10,6 +10,15 @@ const nav = [
   { to: "/eventos", label: "Eventos", icon: CalendarDays },
 ];
 
+function TrebinCredit({ className }: { className?: string }) {
+  return (
+    <div className={cn("rounded-xl border border-violet-100 bg-violet-50/70 p-3", className)}>
+      <p className="text-[11px] font-medium uppercase tracking-wide text-violet-950/45">Desenvolvido por</p>
+      <img src="/trebin-logo.svg" alt="Trebin" className="mt-2 h-9 w-auto rounded-md object-contain" />
+    </div>
+  );
+}
+
 export function AppShell() {
   const { usuario, logout } = useAuth();
 
@@ -50,6 +59,8 @@ export function AppShell() {
               </NavLink>
             ))}
           </nav>
+
+          <TrebinCredit className="mt-auto" />
         </div>
       </aside>
 
@@ -71,6 +82,7 @@ export function AppShell() {
 
         <main className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
           <Outlet />
+          <TrebinCredit className="mx-auto mt-10 w-fit lg:hidden" />
         </main>
       </div>
     </div>

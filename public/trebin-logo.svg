@@ -1,0 +1,9 @@
+<svg width="220" height="72" viewBox="0 0 220 72" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title desc">
+  <title id="title">Trebin</title>
+  <desc id="desc">Logo Trebin com simbolos de codigo roxos e palavra em branco.</desc>
+  <rect width="220" height="72" rx="16" fill="#090119"/>
+  <path d="M43 22L24 36L43 50" stroke="#8F23FF" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M177 22L196 36L177 50" stroke="#8F23FF" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="59" y="49" fill="#FFFFFF" font-family="Inter, Arial, sans-serif" font-size="38" font-weight="800" letter-spacing="-1">trebin</text>
+  <circle cx="148" cy="23" r="5" fill="#8F23FF"/>
+</svg>
