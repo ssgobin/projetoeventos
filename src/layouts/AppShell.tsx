@@ -12,9 +12,11 @@ const nav = [
 
 function TrebinCredit({ className }: { className?: string }) {
   return (
-    <div className={cn("rounded-xl border border-violet-100 bg-violet-50/70 p-3", className)}>
-      <p className="text-[11px] font-medium uppercase tracking-wide text-violet-950/45">Desenvolvido por</p>
-      <img src="/trebin_logo.png" alt="Trebin" className="mt-2 h-9 w-auto rounded-md object-contain" />
+    <div className={cn("overflow-hidden rounded-xl border border-violet-100 bg-[#090119] p-2 shadow-sm", className)}>
+      <div className="flex items-center justify-between gap-3 px-1 pb-1">
+        <p className="text-[10px] font-medium uppercase tracking-wide text-white/55">Desenvolvido por</p>
+      </div>
+      <img src="/trebin_logo.png" alt="Trebin" className="h-11 w-full rounded-lg object-cover object-center" />
     </div>
   );
 }
