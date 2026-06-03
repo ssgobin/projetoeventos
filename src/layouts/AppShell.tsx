@@ -12,11 +12,8 @@ const nav = [
 
 function TrebinCredit({ className }: { className?: string }) {
   return (
-    <div className={cn("overflow-hidden rounded-xl border border-violet-100 bg-[#090119] p-2 shadow-sm", className)}>
-      <div className="flex items-center justify-between gap-3 px-1 pb-1">
-        <p className="text-[10px] font-medium uppercase tracking-wide text-white/55">Desenvolvido por</p>
-      </div>
-      <img src="/trebin_logo.png" alt="Trebin" className="h-11 w-full rounded-lg object-cover object-center" />
+    <div className={cn("flex justify-center", className)}>
+      <img src="/trebin_logo.png" alt="Trebin" className="h-11 w-auto object-contain" />
     </div>
   );
 }
