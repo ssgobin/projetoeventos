@@ -1,4 +1,4 @@
-import { addDoc, collection, doc, getDoc, serverTimestamp, setDoc } from "firebase/firestore";
+import { doc, getDoc } from "firebase/firestore";
 import { CheckCircle2 } from "lucide-react";
 import { QRCodeCanvas } from "qrcode.react";
 import { useEffect, useMemo, useState, type FormEvent } from "react";
@@ -8,15 +8,11 @@ import { Card } from "../components/ui/card";
 import { Input, Textarea } from "../components/ui/input";
 import { UploadProgress } from "../components/ui/upload-progress";
 import { getFilePreview, uploadFile } from "../services/appwrite";
-import { sendInviteEmail } from "../services/email";
+import { createPublicSignup, sendInviteEmail } from "../services/email";
 import { db } from "../services/firebase";
 import type { CampoFormulario, Evento, Formulario, InscricaoArquivo } from "../types";
 import { getInviteRadius, normalizeInviteTheme } from "../utils/inviteTheme";
-import { isValidCpf, makeInviteCode, makeToken, sanitizeText } from "../utils/security";
-
-function makePublicSignupId(eventoId: string, email: string) {
-  return `${eventoId}_${encodeURIComponent(email).replace(/[.%/[\]#?]/g, "_")}`;
-}
+import { isValidCpf, sanitizeText } from "../utils/security";
 
 const DEFAULT_FORM_THEME = {
   corPrincipal: "#5b21b6",
@@ -45,7 +41,7 @@ export default function PublicFormPage() {
   const [files, setFiles] = useState<Record<string, File>>({});
   const [uploadProgress, setUploadProgress] = useState<Record<string, number>>({});
   const [error, setError] = useState("");
-  const [success, setSuccess] = useState<{ code: string; token: string } | null>(null);
+  const [success, setSuccess] = useState<{ id: string; code: string; token: string; statusInscricao: "confirmado" | "espera" } | null>(null);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -96,29 +92,16 @@ export default function PublicFormPage() {
           return next;
         });
       }
-      const qrToken = makeToken();
-      const codigoConvite = makeInviteCode();
       const respostas = Object.fromEntries(Object.entries(values).map(([key, value]) => [key, typeof value === "string" ? sanitizeText(value) : value]));
-      const payload = {
-        empresaId: event.empresaId,
+      const signup = await createPublicSignup({
         eventoId: event.id,
         email,
         respostas,
         arquivos,
-        qrToken,
-        codigoConvite,
-        checkin: { realizado: false },
-        emailEnviado: false,
-        criadoEm: serverTimestamp(),
-      };
-      const ref = event.permitirDuplicidadeEmail
-        ? await addDoc(collection(db, "inscricoes"), payload)
-        : doc(db, "inscricoes", makePublicSignupId(event.id, email));
+      });
 
-      if (!event.permitirDuplicidadeEmail) await setDoc(ref, payload);
-
-      sendInviteEmail(ref.id).catch(() => undefined);
-      setSuccess({ code: codigoConvite, token: qrToken });
+      sendInviteEmail(signup.inscricaoId).catch(() => undefined);
+      setSuccess({ id: signup.inscricaoId, code: signup.codigoConvite, token: signup.qrToken, statusInscricao: signup.statusInscricao });
     } catch (err) {
       const message = err instanceof Error ? err.message : "";
       setError(message.includes("permissions") ? "Este e-mail já está inscrito neste evento." : message || "Não foi possível concluir a inscrição.");
@@ -148,12 +131,17 @@ export default function PublicFormPage() {
               <CheckCircle2 className="mx-auto h-12 w-12" style={{ color: inviteTheme.buttonBackgroundColor }} />
             )}
             <p className="mt-4 text-xs font-bold uppercase tracking-[0.18em]" style={{ color: inviteTheme.accentColor }}>Convite confirmado</p>
-            <h1 className="mt-2 text-2xl font-medium" style={{ color: inviteTheme.titleColor }}>{event.mensagemSucesso}</h1>
-            <p className="mt-2 text-sm" style={{ color: inviteTheme.textColor }}>Guarde o codigo abaixo. O QR Code tambem foi enviado para o seu e-mail.</p>
+            <h1 className="mt-2 text-2xl font-medium" style={{ color: inviteTheme.titleColor }}>{success.statusInscricao === "espera" ? "Você entrou na lista de espera." : event.mensagemSucesso}</h1>
+            <p className="mt-2 text-sm" style={{ color: inviteTheme.textColor }}>
+              {success.statusInscricao === "espera" ? "Guardamos seus dados e avisaremos quando uma vaga for liberada." : "Guarde o código abaixo. O QR Code também foi enviado para o seu e-mail."}
+            </p>
             <div className="mx-auto mt-5 w-fit p-3 ring-1" style={{ backgroundColor: inviteTheme.qrBackgroundColor, borderColor: inviteTheme.borderColor, borderRadius: Math.max(inviteRadius - 6, 4) }}>
               <QRCodeCanvas value={success.token} size={180} />
             </div>
             <p className="mt-4 px-4 py-3 font-mono text-lg tracking-widest" style={{ backgroundColor: inviteTheme.codeBackgroundColor, color: inviteTheme.codeTextColor, borderRadius: Math.max(inviteRadius - 8, 4) }}>{success.code}</p>
+            <Button asChild className="mt-5" style={{ backgroundColor: inviteTheme.buttonBackgroundColor, color: inviteTheme.buttonTextColor }}>
+              <a href={`/convite/${encodeURIComponent(success.id)}/${encodeURIComponent(success.token)}`}>Abrir convite</a>
+            </Button>
           </div>
         </Card>
       </main>

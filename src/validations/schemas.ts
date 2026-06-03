@@ -1,4 +1,4 @@
-import { z } from "zod";
+﻿import { z } from "zod";
 
 const hexColorSchema = z.string().regex(/^#[0-9A-Fa-f]{6}$/, "Use uma cor hexadecimal.");
 
@@ -39,6 +39,8 @@ export const eventSchema = z.object({
   corPrincipal: hexColorSchema,
   tema: z.literal("light"),
   permitirDuplicidadeEmail: z.boolean(),
+  capacidade: z.number().int().min(0, "Use zero para vagas ilimitadas."),
+  listaEsperaAtiva: z.boolean(),
 });
 
 export const inviteSchema = z.object({

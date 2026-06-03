@@ -14,6 +14,7 @@ const FormBuilderPage = lazy(() => import("./pages/FormBuilderPage"));
 const GuestsPage = lazy(() => import("./pages/GuestsPage"));
 const CheckinPage = lazy(() => import("./pages/CheckinPage"));
 const PublicFormPage = lazy(() => import("./pages/PublicFormPage"));
+const PublicInvitePage = lazy(() => import("./pages/PublicInvitePage"));
 
 function App() {
   return (
@@ -23,6 +24,7 @@ function App() {
           <Route path="/login" element={<LoginPage />} />
           <Route path="/cadastro" element={<RegisterPage />} />
           <Route path="/form/:eventoId" element={<PublicFormPage />} />
+          <Route path="/convite/:inscricaoId/:token" element={<PublicInvitePage />} />
           <Route element={<ProtectedRoute />}>
             <Route element={<AppShell />}>
               <Route path="/" element={<DashboardPage />} />

@@ -1,4 +1,4 @@
-import { doc, getDoc, serverTimestamp, updateDoc } from "firebase/firestore";
+import { addDoc, collection, doc, getDoc, getDocs, query, serverTimestamp, updateDoc, where } from "firebase/firestore";
 import { ArrowDown, ArrowUp, Eye, FileText, ImagePlus, Palette, Plus, Save, Settings, Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
@@ -35,6 +35,67 @@ const tabs = [
 ] as const;
 
 type TabValue = (typeof tabs)[number]["value"];
+type FormTemplate = { id: string; nome: string; titulo: string; descricao: string; tema: Formulario["tema"]; campos: CampoFormulario[] };
+
+const BUILTIN_FORM_TEMPLATES: Omit<FormTemplate, "id">[] = [
+  {
+    nome: "Webinar",
+    titulo: "Inscrição para webinar",
+    descricao: "Preencha seus dados para receber o acesso ao webinar.",
+    tema: DEFAULT_FORM_THEME,
+    campos: [
+      { id: "webinar-nome", label: "Nome completo", name: "nome", type: "text", required: true, ordem: 1 },
+      { id: "webinar-email", label: "E-mail", name: "email", type: "email", required: true, ordem: 2 },
+      { id: "webinar-empresa", label: "Empresa", name: "empresa", type: "text", required: false, ordem: 3 },
+    ],
+  },
+  {
+    nome: "Congresso",
+    titulo: "Inscrição para congresso",
+    descricao: "Informe seus dados para confirmar participação.",
+    tema: DEFAULT_FORM_THEME,
+    campos: [
+      { id: "congresso-nome", label: "Nome completo", name: "nome", type: "text", required: true, ordem: 1 },
+      { id: "congresso-email", label: "E-mail", name: "email", type: "email", required: true, ordem: 2 },
+      { id: "congresso-cpf", label: "CPF", name: "cpf", type: "cpf", required: true, ordem: 3 },
+      { id: "congresso-instituicao", label: "Instituição", name: "instituicao", type: "text", required: false, ordem: 4 },
+    ],
+  },
+  {
+    nome: "Workshop",
+    titulo: "Inscrição para workshop",
+    descricao: "Escolha sua turma e confirme seus dados.",
+    tema: DEFAULT_FORM_THEME,
+    campos: [
+      { id: "workshop-nome", label: "Nome completo", name: "nome", type: "text", required: true, ordem: 1 },
+      { id: "workshop-email", label: "E-mail", name: "email", type: "email", required: true, ordem: 2 },
+      { id: "workshop-telefone", label: "Telefone", name: "telefone", type: "tel", required: false, ordem: 3 },
+      { id: "workshop-turma", label: "Turma", name: "turma", type: "select", required: true, options: ["Manhã", "Tarde"], ordem: 4 },
+    ],
+  },
+  {
+    nome: "Festa",
+    titulo: "Confirmação de presença",
+    descricao: "Confirme sua presença e informe seus dados.",
+    tema: DEFAULT_FORM_THEME,
+    campos: [
+      { id: "festa-nome", label: "Nome completo", name: "nome", type: "text", required: true, ordem: 1 },
+      { id: "festa-email", label: "E-mail", name: "email", type: "email", required: true, ordem: 2 },
+      { id: "festa-acompanhante", label: "Levará acompanhante?", name: "acompanhante", type: "radio", required: true, options: ["Sim", "Não"], ordem: 3 },
+    ],
+  },
+  {
+    nome: "Reunião interna",
+    titulo: "Confirmação para reunião interna",
+    descricao: "Confirme seus dados para organização da reunião.",
+    tema: DEFAULT_FORM_THEME,
+    campos: [
+      { id: "reuniao-nome", label: "Nome completo", name: "nome", type: "text", required: true, ordem: 1 },
+      { id: "reuniao-email", label: "E-mail", name: "email", type: "email", required: true, ordem: 2 },
+      { id: "reuniao-area", label: "Área/departamento", name: "area", type: "text", required: false, ordem: 3 },
+    ],
+  },
+];
 
 const themeControls = [
   { key: "backgroundColor", label: "Fundo da página", description: "Área externa do formulário público." },
@@ -141,12 +202,16 @@ function WithPreview({ children, formulario, theme }: { children: React.ReactNod
 
 export default function FormBuilderPage() {
   const { eventoId } = useParams();
-  const { notify } = useFeedback();
+  const { confirmAction, notify } = useFeedback();
   const [formulario, setFormulario] = useState<Formulario | null>(null);
   const [lastSavedSnapshot, setLastSavedSnapshot] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<TabValue>("config");
   const [error, setError] = useState("");
   const [headerUploadProgress, setHeaderUploadProgress] = useState<number | null>(null);
+  const [templates, setTemplates] = useState<FormTemplate[]>([]);
+  const [templateModalOpen, setTemplateModalOpen] = useState(false);
+  const [templateName, setTemplateName] = useState("");
+  const [savingTemplate, setSavingTemplate] = useState(false);
 
   useEffect(() => {
     if (!eventoId) return;
@@ -162,6 +227,51 @@ export default function FormBuilderPage() {
       setLastSavedSnapshot(getFormSnapshot(normalized));
     });
   }, [eventoId]);
+
+  useEffect(() => {
+    if (!formulario?.empresaId) return;
+    getDocs(query(collection(db, "templates"), where("empresaId", "==", formulario.empresaId), where("tipo", "==", "formulario"))).then((snap) => {
+      setTemplates(snap.docs.map((item) => ({ id: item.id, ...item.data() }) as FormTemplate));
+    });
+  }, [formulario?.empresaId]);
+
+  function applyTemplate(template: Omit<FormTemplate, "id">) {
+    if (!formulario) return;
+    setFormulario({
+      ...formulario,
+      titulo: template.titulo,
+      descricao: template.descricao,
+      tema: normalizeTheme(template.tema),
+      campos: enforceRequiredEmail(template.campos.map((field, index) => ({ ...field, id: crypto.randomUUID(), ordem: index + 1 }))),
+    });
+    notify({ type: "info", title: "Template aplicado", description: `Modelo "${template.nome}" aplicado ao formulário.` });
+  }
+
+  async function saveTemplate() {
+    if (!formulario) return;
+    const nome = templateName.trim();
+    if (!nome) return;
+    setSavingTemplate(true);
+    try {
+      await addDoc(collection(db, "templates"), {
+        empresaId: formulario.empresaId,
+        tipo: "formulario",
+        nome,
+        titulo: formulario.titulo,
+        descricao: formulario.descricao,
+        tema: normalizeTheme(formulario.tema),
+        campos: enforceRequiredEmail(formulario.campos).map(normalizeField),
+        criadoEm: serverTimestamp(),
+      });
+      notify({ type: "success", title: "Template salvo", description: "Este modelo já pode ser reutilizado em outros eventos." });
+      const snap = await getDocs(query(collection(db, "templates"), where("empresaId", "==", formulario.empresaId), where("tipo", "==", "formulario")));
+      setTemplates(snap.docs.map((item) => ({ id: item.id, ...item.data() }) as FormTemplate));
+      setTemplateName("");
+      setTemplateModalOpen(false);
+    } finally {
+      setSavingTemplate(false);
+    }
+  }
 
   function updateField(id: string, patch: Partial<CampoFormulario>) {
     setFormulario((current) => {
@@ -212,6 +322,17 @@ export default function FormBuilderPage() {
   async function save(publish = false) {
     if (!formulario) return;
     setError("");
+
+    if (publish) {
+      const confirmed = await confirmAction({
+        title: formulario.publicado ? "Publicar alterações?" : "Publicar formulário?",
+        description: formulario.publicado
+          ? "As alterações salvas ficarão disponíveis imediatamente no formulário público."
+          : "O formulário ficará disponível para receber inscrições assim que o evento estiver ativo.",
+        confirmLabel: formulario.publicado ? "Publicar alterações" : "Publicar formulário",
+      });
+      if (!confirmed) return;
+    }
 
     try {
       const campos = enforceRequiredEmail(formulario.campos).map(normalizeField);
@@ -285,13 +406,13 @@ export default function FormBuilderPage() {
     <div className="space-y-6">
       <div className="page-header">
         <div>
-          <p className="page-kicker">Formulario público</p>
-          <h1 className="page-title">Montar formulario de inscricao</h1>
-          <p className="page-description">Edite textos, imagem, cores, campos e publicacao do formulario público.</p>
+          <p className="page-kicker">Formulário público</p>
+          <h1 className="page-title">Montar formulário de inscrição</h1>
+          <p className="page-description">Edite textos, imagem, cores, campos e publicação do formulário público.</p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Button onClick={() => save(false)}><Save className="h-4 w-4" />Salvar formulario</Button>
-          <Button variant="secondary" onClick={() => save(true)}><Eye className="h-4 w-4" />Publicar formulario</Button>
+          <Button onClick={() => save(false)}><Save className="h-4 w-4" />Salvar formulário</Button>
+          <Button variant="secondary" onClick={() => save(true)}><Eye className="h-4 w-4" />Publicar formulário</Button>
         </div>
       </div>
 
@@ -306,6 +427,23 @@ export default function FormBuilderPage() {
           </div>
         </div>
         {hasUnpublishedChanges && <p className="text-xs font-medium uppercase tracking-wide opacity-70">Ação pendente</p>}
+      </Card>
+
+      <Card className="space-y-3">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+          <div>
+            <CardTitle>Templates de formulário</CardTitle>
+            <p className="mt-1 text-sm text-violet-950/60">Aplique modelos prontos ou salve este formulário como template da empresa.</p>
+          </div>
+          <Button variant="secondary" onClick={() => setTemplateModalOpen(true)}>Salvar como template</Button>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          {[...BUILTIN_FORM_TEMPLATES, ...templates].map((template) => (
+            <Button key={String("id" in template ? template.id : template.nome)} size="sm" variant="secondary" onClick={() => applyTemplate(template)}>
+              {template.nome}
+            </Button>
+          ))}
+        </div>
       </Card>
 
       <Card className="p-2">
@@ -440,6 +578,31 @@ export default function FormBuilderPage() {
       )}
 
       {activeTab === "preview" && <FormPreview formulario={formulario} theme={theme} />}
+
+      {templateModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-violet-950/45 p-4 backdrop-blur-sm" role="dialog" aria-modal="true" aria-labelledby="form-template-title" aria-describedby="form-template-description" onKeyDown={(event) => { if (event.key === "Escape") { setTemplateModalOpen(false); setTemplateName(""); } }}>
+          <Card className="w-full max-w-md animate-scale-in">
+            <CardTitle id="form-template-title">Salvar template de formulário</CardTitle>
+            <p id="form-template-description" className="mt-2 text-sm text-violet-950/60">Dê um nome claro para reutilizar este modelo em outros eventos.</p>
+            <form
+              className="mt-5 space-y-4"
+              onSubmit={(event) => {
+                event.preventDefault();
+                saveTemplate();
+              }}
+            >
+              <div>
+                <Label>Nome do template</Label>
+                <Input autoFocus value={templateName} placeholder="Ex.: Webinar institucional" onChange={(event) => setTemplateName(event.target.value)} />
+              </div>
+              <div className="flex justify-end gap-2">
+                <Button type="button" variant="secondary" onClick={() => { setTemplateModalOpen(false); setTemplateName(""); }}>Cancelar</Button>
+                <Button disabled={!templateName.trim() || savingTemplate}>{savingTemplate ? "Salvando..." : "Salvar template"}</Button>
+              </div>
+            </form>
+          </Card>
+        </div>
+      )}
     </div>
   );
 }

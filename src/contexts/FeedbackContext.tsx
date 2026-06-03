@@ -90,13 +90,13 @@ export function FeedbackProvider({ children }: { children: React.ReactNode }) {
       </div>
 
       {pendingConfirm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#120a1f]/55 p-4 backdrop-blur-md">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#120a1f]/55 p-4 backdrop-blur-md" role="dialog" aria-modal="true" aria-labelledby="confirm-title" aria-describedby={pendingConfirm.description ? "confirm-description" : undefined} onKeyDown={(event) => { if (event.key === "Escape") finishConfirm(false); }}>
           <div className="w-full max-w-md animate-scale-in rounded-xl border border-violet-200 bg-white p-6 shadow-[0_24px_80px_rgba(46,16,101,0.22)]">
-            <h2 className="text-xl font-medium tracking-normal text-violet-950">{pendingConfirm.title}</h2>
-            {pendingConfirm.description && <p className="mt-2 text-sm leading-6 text-violet-950/65">{pendingConfirm.description}</p>}
+            <h2 id="confirm-title" className="text-xl font-medium tracking-normal text-violet-950">{pendingConfirm.title}</h2>
+            {pendingConfirm.description && <p id="confirm-description" className="mt-2 text-sm leading-6 text-violet-950/65">{pendingConfirm.description}</p>}
             <div className="mt-6 flex justify-end gap-2">
               <Button variant="secondary" onClick={() => finishConfirm(false)}>{pendingConfirm.cancelLabel || "Cancelar"}</Button>
-              <Button variant={pendingConfirm.tone === "danger" ? "danger" : "primary"} onClick={() => finishConfirm(true)}>{pendingConfirm.confirmLabel || "Confirmar"}</Button>
+              <Button autoFocus variant={pendingConfirm.tone === "danger" ? "danger" : "primary"} onClick={() => finishConfirm(true)}>{pendingConfirm.confirmLabel || "Confirmar"}</Button>
             </div>
           </div>
         </div>

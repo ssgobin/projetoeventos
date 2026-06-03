@@ -1,4 +1,4 @@
-import imageCompression from "browser-image-compression";
+﻿import imageCompression from "browser-image-compression";
 
 const imageTypes = ["image/jpeg", "image/png", "image/webp", "image/gif"];
 const fileTypes = [...imageTypes, "application/pdf"];
@@ -32,20 +32,21 @@ function uploadFormData(formData: FormData, onProgress?: (progress: number) => v
       onProgress(Math.min(99, Math.round((event.loaded / event.total) * 100)));
     };
     request.onload = () => {
-      let result: Record<string, unknown> = {};
+      let result: Record<string, unknown>;
       try {
         result = request.responseText ? JSON.parse(request.responseText) : {};
       } catch {
-        result = {};
+        reject(new Error("Não foi possível processar a resposta do upload."));
+        return;
       }
       if (request.status < 200 || request.status >= 300) {
-        reject(new Error(typeof result.error === "string" ? result.error : "Nao foi possivel enviar o arquivo."));
+        reject(new Error(typeof result.error === "string" ? result.error : "Não foi possível enviar o arquivo."));
         return;
       }
       onProgress?.(100);
       resolve({ fileId: result.fileId as string, url: result.url as string });
     };
-    request.onerror = () => reject(new Error("Nao foi possivel enviar o arquivo."));
+    request.onerror = () => reject(new Error("Não foi possível enviar o arquivo."));
     request.send(formData);
   });
 }
@@ -80,7 +81,7 @@ export async function deleteFile(fileId: string) {
   });
 
   const result = await response.json().catch(() => ({}));
-  if (!response.ok) throw new Error(result.error || "Nao foi possivel excluir o arquivo.");
+  if (!response.ok) throw new Error(result.error || "Não foi possível excluir o arquivo.");
 }
 
 export async function updateFile(oldFileId: string | undefined, file: File, options: UploadOptions = {}) {

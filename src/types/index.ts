@@ -55,6 +55,8 @@ export interface Evento {
   corPrincipal: string;
   tema: ThemeMode;
   permitirDuplicidadeEmail: boolean;
+  capacidade?: number;
+  listaEsperaAtiva?: boolean;
   mensagemConvite: string;
   mensagemSucesso: string;
   conviteTema?: {
@@ -133,12 +135,17 @@ export interface Inscricao {
   arquivos?: InscricaoArquivo[];
   qrToken: string;
   codigoConvite: string;
+  statusInscricao?: "confirmado" | "espera";
   checkin: {
     realizado: boolean;
     dataHora?: Timestamp;
     operadorId?: string;
   };
   emailEnviado: boolean;
+  emailStatus?: "pendente" | "enviado" | "falhou";
+  emailErro?: string;
+  emailEnviadoEm?: Timestamp;
+  emailFalhouEm?: Timestamp;
   criadoEm: Timestamp;
 }
 

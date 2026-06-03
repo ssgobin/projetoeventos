@@ -27,8 +27,8 @@ const eventActions = [
   {
     to: (eventId: string) => `/eventos/${eventId}/formulario`,
     icon: ClipboardList,
-    title: "Formulario público",
-    description: "Campos, tema e publicacao",
+    title: "Formulário público",
+    description: "Campos, tema e publicação",
   },
   {
     to: (eventId: string) => `/eventos/${eventId}/convite`,
@@ -40,7 +40,7 @@ const eventActions = [
     to: (eventId: string) => `/eventos/${eventId}/inscritos`,
     icon: Users,
     title: "Inscritos",
-    description: "Lista, reenvio e exportacao",
+    description: "Lista, reenvio e exportação",
   },
   {
     to: (eventId: string) => `/eventos/${eventId}/checkin`,
@@ -121,10 +121,10 @@ export default function EventsPage() {
       await load();
       notify({
         type: failedFileDeletes.length ? "info" : "success",
-        title: "Evento excluido",
+        title: "Evento excluído",
         description: failedFileDeletes.length
-          ? `${inscricoesSnap.size} confirmado(s) foram apagados. ${failedFileDeletes.length} arquivo(s) do Appwrite nao puderam ser removidos.`
-          : `${inscricoesSnap.size} confirmado(s) e ${fileIds.size} arquivo(s) do foram apagados junto com o evento.`,
+          ? `${inscricoesSnap.size} confirmado(s) foram apagados. ${failedFileDeletes.length} arquivo(s) do Appwrite não puderam ser removidos.`
+          : `${inscricoesSnap.size} confirmado(s) e ${fileIds.size} arquivo(s) foram apagados junto com o evento.`,
       });
     } catch (error) {
       notify({ type: "error", title: "Falha ao excluir", description: error instanceof Error ? error.message : "Tente novamente em instantes." });
@@ -197,7 +197,7 @@ export default function EventsPage() {
                     ))}
                   </div>
                   <div className="grid gap-2 pt-2">
-                    <Button size="sm" variant="secondary" onClick={() => copyPublicLink(event)}><Copy className="h-4 w-4" />Copiar link publico</Button>
+                    <Button size="sm" variant="secondary" onClick={() => copyPublicLink(event)}><Copy className="h-4 w-4" />Copiar link público</Button>
                     <Button className="whitespace-nowrap" size="sm" variant="danger" disabled={deletingEventId === event.id} onClick={() => remove(event)}>
                       {deletingEventId === event.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
                       {deletingEventId === event.id ? "Excluindo" : "Excluir evento"}

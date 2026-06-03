@@ -1,5 +1,5 @@
 import { assertSameCompany, errorStatus, getAdmin, getAuthedUser, getAuthHeader, response } from "./_admin";
-import { buildInviteEmail, getTransport } from "./_email";
+import { sendInvite } from "./_invite";
 
 export async function handler(event: { body?: string; headers: Record<string, string | undefined> }) {
   try {
@@ -14,16 +14,8 @@ export async function handler(event: { body?: string; headers: Record<string, st
     assertSameCompany(auth.usuario, inscricao.empresaId);
     const eventoSnap = await db.collection("eventos").doc(inscricao.eventoId).get();
     if (!eventoSnap.exists) return response(404, { error: "Evento nao encontrado" });
-    const evento = eventoSnap.data()!;
-    const inviteEmail = await buildInviteEmail(evento, inscricao);
-    await getTransport().sendMail({
-      from: `"${process.env.SMTP_FROM_NAME || "Sistema de Eventos"}" <${process.env.SMTP_USER}>`,
-      to: inscricao.email,
-      subject: `Seu convite - ${evento.nome}`,
-      html: inviteEmail.html,
-      attachments: inviteEmail.attachments,
-    });
-    await inscricaoRef.update({ emailEnviado: true });
+    const result = await sendInvite(db, admin, inscricaoRef);
+    if (!result.ok) return response(500, { error: result.error });
     await db.collection("logs").add({
       empresaId: inscricao.empresaId,
       usuarioId: auth.uid,

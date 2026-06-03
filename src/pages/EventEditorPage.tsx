@@ -1,4 +1,4 @@
-import { zodResolver } from "@hookform/resolvers/zod";
+﻿import { zodResolver } from "@hookform/resolvers/zod";
 import { addDoc, collection, doc, getDoc, serverTimestamp, setDoc, Timestamp, updateDoc } from "firebase/firestore";
 import { ImagePlus, Save } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
@@ -30,6 +30,8 @@ const defaults: FormData = {
   corPrincipal: BRAND_COLOR,
   tema: "light",
   permitirDuplicidadeEmail: false,
+  capacidade: 0,
+  listaEsperaAtiva: true,
 };
 
 
@@ -62,6 +64,8 @@ export default function EventEditorPage() {
         corPrincipal: data.corPrincipal || BRAND_COLOR,
         tema: "light",
         permitirDuplicidadeEmail: data.permitirDuplicidadeEmail,
+        capacidade: data.capacidade || 0,
+        listaEsperaAtiva: data.listaEsperaAtiva ?? true,
       });
     });
   }, [eventoId, reset]);
@@ -107,6 +111,8 @@ export default function EventEditorPage() {
       ...data,
       ...uploadedImages,
       corPrincipal: data.corPrincipal,
+      capacidade: Number(data.capacidade) || 0,
+      listaEsperaAtiva: data.listaEsperaAtiva,
       tema: "light",
       empresaId: event?.empresaId || usuario.empresaId,
       dataEvento: Timestamp.fromDate(new Date(data.dataEvento)),
@@ -120,8 +126,8 @@ export default function EventEditorPage() {
     }
     const eventRef = await addDoc(collection(db, "eventos"), {
       ...payload,
-      mensagemConvite: "Estamos felizes em receber voce. Apresente o QR Code na entrada do evento.",
-      mensagemSucesso: "Sua inscricao foi confirmada. Enviamos o convite para seu e-mail.",
+      mensagemConvite: "Estamos felizes em receber você. Apresente o QR Code na entrada do evento.",
+      mensagemSucesso: "Sua inscrição foi confirmada. Enviamos o convite para seu e-mail.",
       conviteTema: { ...DEFAULT_INVITE_THEME, accentColor: data.corPrincipal, buttonBackgroundColor: data.corPrincipal },
       criadoEm: serverTimestamp(),
     });
@@ -154,7 +160,7 @@ export default function EventEditorPage() {
           if (current[kind]) URL.revokeObjectURL(current[kind]);
           return { ...current, [kind]: previewUrl };
         });
-        notify({ type: "info", title: kind === "banner" ? "Banner selecionado" : "Logo selecionado", description: "A imagem sera enviada quando voce salvar o evento." });
+        notify({ type: "info", title: kind === "banner" ? "Banner selecionado" : "Logo selecionado", description: "A imagem será enviada quando você salvar o evento." });
       } catch {
         notify({ type: "error", title: "Falha ao selecionar imagem", description: "Verifique o arquivo e tente novamente." });
       }
@@ -190,9 +196,9 @@ export default function EventEditorPage() {
   return (
     <div className="mx-auto max-w-6xl space-y-8 animate-fade-up">
       <div>
-        <p className="page-kicker">Informacoes do evento</p>
+        <p className="page-kicker">Informações do evento</p>
         <h1 className="page-title">{eventoId ? "Editar dados do evento" : "Criar evento"}</h1>
-        <p className="page-description">Nome, descricao, data, local, status, cor principal e imagens.</p>
+        <p className="page-description">Nome, descrição, data, local, status, cor principal e imagens.</p>
       </div>
       <form className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_340px]" onSubmit={form.handleSubmit(onSubmit)}>
         <Card className="grid gap-4 sm:grid-cols-2">
@@ -233,6 +239,14 @@ export default function EventEditorPage() {
           <label className="flex items-center gap-2 pt-7 text-sm">
             <input type="checkbox" {...form.register("permitirDuplicidadeEmail")} />
             Permitir inscrições duplicadas por e-mail
+          </label>
+          <div>
+            <Label>Capacidade</Label>
+            <Input type="number" min={0} placeholder="0 = ilimitado" {...form.register("capacidade", { valueAsNumber: true })} />
+          </div>
+          <label className="flex items-center gap-2 pt-7 text-sm">
+            <input type="checkbox" {...form.register("listaEsperaAtiva")} />
+            Ativar lista de espera quando lotar
           </label>
           <Button className="sm:col-span-2" disabled={form.formState.isSubmitting}>
             <Save className="h-4 w-4" /> Salvar dados do evento
