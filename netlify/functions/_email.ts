@@ -54,7 +54,7 @@ export async function buildInviteEmail(evento: FirebaseFirestore.DocumentData, i
   const bannerUrl = absoluteAssetUrl(evento.bannerUrl);
   const logoUrl = absoluteAssetUrl(evento.logoUrl);
   const html = `
-  <div style="margin:0;background:${theme.backgroundColor};padding:32px;font-family:Inter,Arial,sans-serif;color:${theme.titleColor}">
+  <div style="margin:0;background:${theme.backgroundColor};padding:32px;font-family:Montserrat,Arial,sans-serif;color:${theme.titleColor}">
     <div style="max-width:640px;margin:auto;background:${theme.cardBackgroundColor};border-radius:${radius}px;overflow:hidden;border:1px solid ${theme.borderColor}">
       ${theme.layout === "highlight" ? `<div style="height:12px;background:${theme.accentColor}"></div>` : ""}
       ${bannerUrl ? `<img src="${bannerUrl}" alt="" style="width:100%;height:220px;object-fit:cover;display:block">` : ""}
