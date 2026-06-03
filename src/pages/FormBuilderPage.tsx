@@ -5,6 +5,7 @@ import { useParams } from "react-router-dom";
 import { Button } from "../components/ui/button";
 import { Card, CardTitle } from "../components/ui/card";
 import { Input, Label, Textarea } from "../components/ui/input";
+import { UploadProgress } from "../components/ui/upload-progress";
 import { useFeedback } from "../contexts/FeedbackContext";
 import { slugify } from "../lib/utils";
 import { getFilePreview, uploadFile } from "../services/appwrite";
@@ -145,6 +146,7 @@ export default function FormBuilderPage() {
   const [lastSavedSnapshot, setLastSavedSnapshot] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<TabValue>("config");
   const [error, setError] = useState("");
+  const [headerUploadProgress, setHeaderUploadProgress] = useState<number | null>(null);
 
   useEffect(() => {
     if (!eventoId) return;
@@ -241,12 +243,15 @@ export default function FormBuilderPage() {
 
   async function headerUpload(file?: File) {
     if (!file || !formulario) return;
+    setHeaderUploadProgress(0);
     try {
-      const uploaded = await uploadFile(file, { imagesOnly: true, maxMb: 6 });
+      const uploaded = await uploadFile(file, { imagesOnly: true, maxMb: 6, onProgress: setHeaderUploadProgress });
       setFormulario({ ...formulario, headerImageUrl: uploaded.url, headerImageFileId: uploaded.fileId });
       notify({ type: "success", title: "Imagem enviada", description: "A prévia do formulário foi atualizada." });
     } catch (error) {
       notify({ type: "error", title: "Falha no upload", description: error instanceof Error ? error.message : "Tente enviar outro arquivo." });
+    } finally {
+      setHeaderUploadProgress(null);
     }
   }
 
@@ -339,6 +344,7 @@ export default function FormBuilderPage() {
                 <ImagePlus className="h-4 w-4" /> Imagem de cabeçalho
                 <input type="file" accept="image/*" className="hidden" onChange={(event) => headerUpload(event.target.files?.[0])} />
               </label>
+              {headerUploadProgress !== null && <UploadProgress label="Enviando imagem de cabeçalho" progress={headerUploadProgress} />}
               <div className="lg:col-span-2">
                 <Label>Descrição</Label>
                 <Textarea value={formulario.descricao} onChange={(event) => setFormulario({ ...formulario, descricao: event.target.value })} />

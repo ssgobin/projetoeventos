@@ -6,6 +6,7 @@ import { useParams } from "react-router-dom";
 import { Button } from "../components/ui/button";
 import { Card } from "../components/ui/card";
 import { Input, Textarea } from "../components/ui/input";
+import { UploadProgress } from "../components/ui/upload-progress";
 import { getFilePreview, uploadFile } from "../services/appwrite";
 import { sendInviteEmail } from "../services/email";
 import { db } from "../services/firebase";
@@ -42,6 +43,7 @@ export default function PublicFormPage() {
   const [formulario, setFormulario] = useState<Formulario | null>(null);
   const [values, setValues] = useState<Record<string, unknown>>({});
   const [files, setFiles] = useState<Record<string, File>>({});
+  const [uploadProgress, setUploadProgress] = useState<Record<string, number>>({});
   const [error, setError] = useState("");
   const [success, setSuccess] = useState<{ code: string; token: string } | null>(null);
   const [loading, setLoading] = useState(false);
@@ -82,8 +84,17 @@ export default function PublicFormPage() {
       const email = String(values[emailField!.name]).toLowerCase().trim();
       const arquivos: InscricaoArquivo[] = [];
       for (const [campoId, file] of Object.entries(files)) {
-        const uploaded = await uploadFile(file, { maxMb: 8 });
+        setUploadProgress((current) => ({ ...current, [campoId]: 0 }));
+        const uploaded = await uploadFile(file, {
+          maxMb: 8,
+          onProgress: (progress) => setUploadProgress((current) => ({ ...current, [campoId]: progress })),
+        });
         arquivos.push({ campoId, fileId: uploaded.fileId, url: uploaded.url, nome: uploaded.nome });
+        setUploadProgress((current) => {
+          const next = { ...current };
+          delete next[campoId];
+          return next;
+        });
       }
       const qrToken = makeToken();
       const codigoConvite = makeInviteCode();
@@ -112,6 +123,7 @@ export default function PublicFormPage() {
       const message = err instanceof Error ? err.message : "";
       setError(message.includes("permissions") ? "Este e-mail já está inscrito neste evento." : message || "Não foi possível concluir a inscrição.");
     } finally {
+      setUploadProgress({});
       setLoading(false);
     }
   }
@@ -158,7 +170,7 @@ export default function PublicFormPage() {
           <p className="mt-2" style={{ color: theme.textColor }}>{formulario.descricao}</p>
           <div className="mt-6 space-y-4">
             {[...formulario.campos].sort((a, b) => a.ordem - b.ordem).map((field) => (
-              <DynamicField key={field.id} field={field} theme={theme} value={values[field.name]} onChange={(value) => setValues((current) => ({ ...current, [field.name]: value }))} onFile={(file) => setFiles((current) => ({ ...current, [field.id]: file }))} />
+              <DynamicField key={field.id} field={field} theme={theme} value={values[field.name]} selectedFile={files[field.id]} uploadProgress={uploadProgress[field.id]} onChange={(value) => setValues((current) => ({ ...current, [field.name]: value }))} onFile={(file) => setFiles((current) => ({ ...current, [field.id]: file }))} />
             ))}
           </div>
           {error && <p className="mt-4 rounded-md bg-fuchsia-50 px-3 py-2 text-sm text-fuchsia-800">{error}</p>}
@@ -169,7 +181,7 @@ export default function PublicFormPage() {
   );
 }
 
-function DynamicField({ field, theme, value, onChange, onFile }: { field: CampoFormulario; theme: Formulario["tema"]; value: unknown; onChange: (value: unknown) => void; onFile: (file: File) => void }) {
+function DynamicField({ field, theme, value, selectedFile, uploadProgress, onChange, onFile }: { field: CampoFormulario; theme: Formulario["tema"]; value: unknown; selectedFile?: File; uploadProgress?: number; onChange: (value: unknown) => void; onFile: (file: File) => void }) {
   const label = <label className="mb-1.5 block text-sm font-medium" style={{ color: theme.labelColor }}>{field.label}{field.required ? " *" : ""}</label>;
   const inputStyle = { backgroundColor: theme.inputBackgroundColor, borderColor: theme.inputBorderColor, color: theme.inputTextColor };
   const optionLabelStyle = { color: theme.textColor };
@@ -179,6 +191,13 @@ function DynamicField({ field, theme, value, onChange, onFile }: { field: CampoF
   if (field.type === "radio") return <div>{label}<div className="space-y-2">{field.options?.map((option) => <label key={option} className="flex gap-2 text-sm" style={optionLabelStyle}><input type="radio" name={field.id} onChange={() => onChange(option)} />{option}</label>)}</div></div>;
   if (field.type === "checkbox") return <div>{label}<div className="space-y-2">{field.options?.map((option) => <label key={option} className="flex gap-2 text-sm" style={optionLabelStyle}><input type="checkbox" onChange={(e) => { const list = Array.isArray(value) ? value as string[] : []; onChange(e.target.checked ? [...list, option] : list.filter((item) => item !== option)); }} />{option}</label>)}</div></div>;
   if (field.type === "terms") return <label className="flex gap-2 text-sm" style={optionLabelStyle}><input type="checkbox" checked={Boolean(value)} onChange={(e) => onChange(e.target.checked)} />{field.label}</label>;
-  if (field.type === "file") return <div>{label}<Input type="file" style={inputStyle} onChange={(e) => e.target.files?.[0] && onFile(e.target.files[0])} /></div>;
+  if (field.type === "file") return (
+    <div>
+      {label}
+      <Input type="file" style={inputStyle} onChange={(e) => e.target.files?.[0] && onFile(e.target.files[0])} />
+      {selectedFile && uploadProgress === undefined && <p className="mt-2 text-xs" style={{ color: theme.textColor }}>{selectedFile.name}</p>}
+      {uploadProgress !== undefined && <div className="mt-2"><UploadProgress label={`Enviando ${selectedFile?.name || field.label}`} progress={uploadProgress} /></div>}
+    </div>
+  );
   return <div>{label}<Input type={field.type === "cpf" ? "text" : field.type} placeholder={field.placeholder} value={String(value || "")} style={inputStyle} onChange={(e) => onChange(e.target.value)} /></div>;
 }

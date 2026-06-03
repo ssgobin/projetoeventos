@@ -8,6 +8,7 @@ import { z } from "zod";
 import { Button } from "../components/ui/button";
 import { Card, CardTitle } from "../components/ui/card";
 import { Input, Label, Textarea } from "../components/ui/input";
+import { UploadProgress } from "../components/ui/upload-progress";
 import { useAuth } from "../contexts/AuthContext";
 import { useFeedback } from "../contexts/FeedbackContext";
 import { getFilePreview, uploadFile, validateFile } from "../services/appwrite";
@@ -39,6 +40,7 @@ export default function EventEditorPage() {
   const { notify } = useFeedback();
   const [event, setEvent] = useState<Evento | null>(null);
   const [uploading, setUploading] = useState("");
+  const [uploadProgress, setUploadProgress] = useState<Record<string, number>>({});
   const [pendingImages, setPendingImages] = useState<{ banner?: File; logo?: File }>({});
   const [pendingPreviews, setPendingPreviews] = useState<{ banner?: string; logo?: string }>({});
   const pendingPreviewsRef = useRef(pendingPreviews);
@@ -78,12 +80,27 @@ export default function EventEditorPage() {
     if (!usuario) return;
     const uploadedImages: Partial<Pick<Evento, "bannerUrl" | "bannerFileId" | "logoUrl" | "logoFileId">> = {};
     if (!eventoId) {
-      for (const kind of ["banner", "logo"] as const) {
-        const file = pendingImages[kind];
-        if (!file) continue;
-        const uploaded = await uploadFile(file, { imagesOnly: true, maxMb: 6 });
-        uploadedImages[`${kind}Url`] = uploaded.url;
-        uploadedImages[`${kind}FileId`] = uploaded.fileId;
+      try {
+        for (const kind of ["banner", "logo"] as const) {
+          const file = pendingImages[kind];
+          if (!file) continue;
+          setUploading(kind);
+          const uploaded = await uploadFile(file, {
+            imagesOnly: true,
+            maxMb: 6,
+            onProgress: (progress) => setUploadProgress((current) => ({ ...current, [kind]: progress })),
+          });
+          uploadedImages[`${kind}Url`] = uploaded.url;
+          uploadedImages[`${kind}FileId`] = uploaded.fileId;
+          setUploadProgress((current) => {
+            const next = { ...current };
+            delete next[kind];
+            return next;
+          });
+        }
+      } finally {
+        setUploading("");
+        setUploadProgress({});
       }
     }
     const payload = {
@@ -144,8 +161,13 @@ export default function EventEditorPage() {
       return;
     }
     setUploading(kind);
+    setUploadProgress((current) => ({ ...current, [kind]: 0 }));
     try {
-      const uploaded = await uploadFile(file, { imagesOnly: true, maxMb: 6 });
+      const uploaded = await uploadFile(file, {
+        imagesOnly: true,
+        maxMb: 6,
+        onProgress: (progress) => setUploadProgress((current) => ({ ...current, [kind]: progress })),
+      });
       await updateDoc(doc(db, "eventos", eventoId), {
         [`${kind}Url`]: uploaded.url,
         [`${kind}FileId`]: uploaded.fileId,
@@ -157,6 +179,11 @@ export default function EventEditorPage() {
       notify({ type: "error", title: "Falha no upload", description: "Verifique o arquivo e tente novamente." });
     } finally {
       setUploading("");
+      setUploadProgress((current) => {
+        const next = { ...current };
+        delete next[kind];
+        return next;
+      });
     }
   }
 
@@ -210,6 +237,11 @@ export default function EventEditorPage() {
           <Button className="sm:col-span-2" disabled={form.formState.isSubmitting}>
             <Save className="h-4 w-4" /> Salvar dados do evento
           </Button>
+          {!eventoId && Object.entries(uploadProgress).map(([kind, progress]) => (
+            <div key={kind} className="sm:col-span-2">
+              <UploadProgress label={kind === "banner" ? "Enviando banner" : "Enviando logo"} progress={progress} />
+            </div>
+          ))}
         </Card>
         <Card>
           <CardTitle>Imagens</CardTitle>
@@ -226,6 +258,7 @@ export default function EventEditorPage() {
               <ImagePlus className="h-4 w-4" /> {uploading === "banner" ? "Enviando..." : "Enviar banner"}
               <input type="file" accept="image/*" className="hidden" onChange={(event) => handleImage(event.target.files?.[0], "banner")} />
             </label>
+            {uploading === "banner" && <UploadProgress label="Enviando banner" progress={uploadProgress.banner} />}
             {(pendingPreviews.logo || event?.logoFileId || event?.logoUrl) && (
               <img
                 src={pendingPreviews.logo || (event?.logoFileId ? getFilePreview(event.logoFileId) : event?.logoUrl)}
@@ -237,6 +270,7 @@ export default function EventEditorPage() {
               <ImagePlus className="h-4 w-4" /> {uploading === "logo" ? "Enviando..." : "Enviar logo"}
               <input type="file" accept="image/*" className="hidden" onChange={(event) => handleImage(event.target.files?.[0], "logo")} />
             </label>
+            {uploading === "logo" && <UploadProgress label="Enviando logo" progress={uploadProgress.logo} />}
           </div>
         </Card>
       </form>
