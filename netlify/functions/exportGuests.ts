@@ -1,4 +1,4 @@
-import { assertSameCompany, getAdmin, getAuthedUser, response } from "./_admin";
+﻿import { assertSameCompany, getAdmin, getAuthedUser, response } from "./_admin";
 
 export async function handler(event: { body?: string; headers: Record<string, string | undefined> }) {
   try {
@@ -7,7 +7,7 @@ export async function handler(event: { body?: string; headers: Record<string, st
     const admin = getAdmin();
     const db = admin.firestore();
     const eventoSnap = await db.collection("eventos").doc(eventoId).get();
-    if (!eventoSnap.exists) return response(404, { error: "Evento nao encontrado" });
+    if (!eventoSnap.exists) return response(404, { error: "Evento não encontrado" });
     assertSameCompany(auth.usuario, eventoSnap.data()!.empresaId);
     const snap = await db.collection("inscricoes").where("eventoId", "==", eventoId).get();
     const rows = snap.docs.map((doc) => {
@@ -23,6 +23,6 @@ export async function handler(event: { body?: string; headers: Record<string, st
     });
     return response(200, { rows });
   } catch (err) {
-    return response(403, { error: err instanceof Error ? err.message : "Falha na exportacao" });
+    return response(403, { error: err instanceof Error ? err.message : "Falha na exportação" });
   }
 }

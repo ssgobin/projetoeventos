@@ -41,6 +41,25 @@ export const eventSchema = z.object({
   permitirDuplicidadeEmail: z.boolean(),
   capacidade: z.number().int().min(0, "Use zero para vagas ilimitadas."),
   listaEsperaAtiva: z.boolean(),
+  categoriasInscricao: z.array(z.object({
+    id: z.string().min(1),
+    nome: z.string().min(2, "Informe o nome da categoria."),
+    tipo: z.enum(["gratuito", "pago"]),
+    capacidade: z.number().int().min(0, "Use zero para vagas ilimitadas."),
+    listaEsperaAtiva: z.boolean(),
+    ativa: z.boolean(),
+    publica: z.boolean(),
+  })),
+  emailAgenda: z.object({
+    conviteAtivo: z.boolean(),
+    lembrete24hAtivo: z.boolean(),
+    lembreteDiaAtivo: z.boolean(),
+    posEventoAtivo: z.boolean(),
+    posEventoHorasDepois: z.number().int().min(1, "Use pelo menos 1 hora.").max(168, "Use no máximo 168 horas."),
+    mensagemLembrete24h: z.string().min(5, "Informe a mensagem do lembrete 24h."),
+    mensagemLembreteDia: z.string().min(5, "Informe a mensagem do lembrete do dia."),
+    mensagemPosEvento: z.string().min(5, "Informe a mensagem pós-evento."),
+  }),
 });
 
 export const inviteSchema = z.object({

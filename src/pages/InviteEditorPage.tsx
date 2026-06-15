@@ -1,4 +1,4 @@
-import { zodResolver } from "@hookform/resolvers/zod";
+﻿import { zodResolver } from "@hookform/resolvers/zod";
 import { addDoc, collection, doc, getDoc, getDocs, query, serverTimestamp, updateDoc, where } from "firebase/firestore";
 import { Save } from "lucide-react";
 import { useEffect, useState } from "react";
@@ -157,7 +157,7 @@ export default function InviteEditorPage() {
     navigate("/eventos");
   }
 
-  if (!event) return <p className="text-sm text-violet-950/60">Carregando convite...</p>;
+  if (!event) return <p className="text-sm text-slate-500">Carregando convite...</p>;
   const logoSrc = event.logoFileId ? getFilePreview(event.logoFileId) : event.logoUrl;
 
   return (
@@ -172,7 +172,7 @@ export default function InviteEditorPage() {
         <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
           <div>
             <CardTitle>Templates de convite</CardTitle>
-            <p className="mt-1 text-sm text-violet-950/60">Aplique modelos prontos ou salve este convite como template da empresa.</p>
+            <p className="mt-1 text-sm text-slate-500">Aplique modelos prontos ou salve este convite como template da empresa.</p>
           </div>
           <Button variant="secondary" onClick={() => setTemplateModalOpen(true)}>Salvar como template</Button>
         </div>
@@ -197,7 +197,7 @@ export default function InviteEditorPage() {
           </div>
           <div>
             <Label>Modelo</Label>
-            <select className="h-11 w-full rounded-md border border-violet-200 bg-white px-3 text-sm text-violet-950 outline-none transition focus:border-violet-500 focus:ring-4 focus:ring-violet-100" {...form.register("conviteTema.layout")}>
+            <select className="h-11 w-full rounded-md border border-slate-200 bg-white px-3 text-sm text-slate-950 outline-none transition focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100" {...form.register("conviteTema.layout")}>
               <option value="classic">Clássico</option>
               <option value="highlight">Destaque</option>
               <option value="compact">Compacto</option>
@@ -205,14 +205,14 @@ export default function InviteEditorPage() {
           </div>
           <div>
             <Label>Formato</Label>
-            <select className="h-11 w-full rounded-md border border-violet-200 bg-white px-3 text-sm text-violet-950 outline-none transition focus:border-violet-500 focus:ring-4 focus:ring-violet-100" {...form.register("conviteTema.shape")}>
+            <select className="h-11 w-full rounded-md border border-slate-200 bg-white px-3 text-sm text-slate-950 outline-none transition focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100" {...form.register("conviteTema.shape")}>
               <option value="soft">Arredondado</option>
               <option value="straight">Reto</option>
               <option value="pill">Pill</option>
             </select>
           </div>
           {inviteColorFields.map((field) => (
-            <label key={field.key} className="grid grid-cols-[1fr_auto] items-center gap-3 rounded-md border border-violet-100 bg-violet-50/50 p-3 text-sm text-violet-950">
+            <label key={field.key} className="grid grid-cols-[1fr_auto] items-center gap-3 rounded-md border border-slate-200 bg-slate-50 p-3 text-sm text-slate-950">
               <span>{field.label}</span>
               <Input type="color" className="h-9 w-11 p-1" {...form.register(`conviteTema.${field.key}`)} />
             </label>
@@ -229,10 +229,10 @@ export default function InviteEditorPage() {
       </form>
 
       {templateModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-violet-950/45 p-4 backdrop-blur-sm" role="dialog" aria-modal="true" aria-labelledby="invite-template-title" aria-describedby="invite-template-description" onKeyDown={(event) => { if (event.key === "Escape") { setTemplateModalOpen(false); setTemplateName(""); } }}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/45 p-4 backdrop-blur-sm" role="dialog" aria-modal="true" aria-labelledby="invite-template-title" aria-describedby="invite-template-description" onKeyDown={(event) => { if (event.key === "Escape") { setTemplateModalOpen(false); setTemplateName(""); } }}>
           <Card className="w-full max-w-md animate-scale-in">
             <CardTitle id="invite-template-title">Salvar template de convite</CardTitle>
-            <p id="invite-template-description" className="mt-2 text-sm text-violet-950/60">Dê um nome claro para reutilizar este convite em outros eventos.</p>
+            <p id="invite-template-description" className="mt-2 text-sm text-slate-500">Dê um nome claro para reutilizar este convite em outros eventos.</p>
             <form
               className="mt-5 space-y-4"
               onSubmit={(event) => {

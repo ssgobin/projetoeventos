@@ -1,4 +1,4 @@
-import { doc, getDoc } from "firebase/firestore";
+﻿import { doc, getDoc } from "firebase/firestore";
 import { CheckCircle2 } from "lucide-react";
 import { QRCodeCanvas } from "qrcode.react";
 import { useEffect, useMemo, useState, type FormEvent } from "react";
@@ -33,11 +33,25 @@ function normalizeTheme(theme?: Partial<Formulario["tema"]>): Formulario["tema"]
   return { ...DEFAULT_FORM_THEME, ...theme, modo: "light" };
 }
 
+function matchesConditionalValue(value: unknown, expected: string) {
+  if (Array.isArray(value)) return value.map(String).includes(expected);
+  if (typeof value === "boolean") return expected === (value ? "Sim" : "Não");
+  return String(value || "") === expected;
+}
+
+function isFieldVisible(field: CampoFormulario, fields: CampoFormulario[], values: Record<string, unknown>) {
+  if (!field.conditional?.fieldId || !field.conditional.value) return true;
+  const controller = fields.find((item) => item.id === field.conditional?.fieldId);
+  if (!controller) return true;
+  return matchesConditionalValue(values[controller.name], field.conditional.value);
+}
+
 export default function PublicFormPage() {
   const { eventoId } = useParams();
   const [event, setEvent] = useState<Evento | null>(null);
   const [formulario, setFormulario] = useState<Formulario | null>(null);
   const [values, setValues] = useState<Record<string, unknown>>({});
+  const [categoriaId, setCategoriaId] = useState("");
   const [files, setFiles] = useState<Record<string, File>>({});
   const [uploadProgress, setUploadProgress] = useState<Record<string, number>>({});
   const [error, setError] = useState("");
@@ -53,9 +67,17 @@ export default function PublicFormPage() {
   }, [eventoId]);
 
   const emailField = useMemo(() => formulario?.campos.find((field) => field.type === "email" && field.required), [formulario]);
+  const publicCategories = useMemo(() => (event?.categoriasInscricao || []).filter((category) => category.ativa !== false && category.publica !== false), [event?.categoriasInscricao]);
+  const sortedFields = useMemo(() => [...(formulario?.campos || [])].sort((a, b) => a.ordem - b.ordem), [formulario?.campos]);
+  const visibleFields = useMemo(() => sortedFields.filter((field) => isFieldVisible(field, sortedFields, values)), [sortedFields, values]);
+
+  useEffect(() => {
+    if (!categoriaId && publicCategories.length > 0) setCategoriaId(publicCategories[0].id);
+  }, [categoriaId, publicCategories]);
 
   function validate(campos: CampoFormulario[]) {
     if (!emailField) return "Formulário indisponível: falta e-mail obrigatório.";
+    if (publicCategories.length > 0 && !categoriaId) return "Selecione uma categoria de inscrição.";
     for (const field of campos) {
       const value = values[field.name];
       if (field.required && field.type !== "file" && (value === undefined || value === "" || value === false)) return `Preencha ${field.label}.`;
@@ -69,7 +91,7 @@ export default function PublicFormPage() {
   async function submit(e: FormEvent) {
     e.preventDefault();
     if (!formulario || !event) return;
-    const validation = validate(formulario.campos);
+    const validation = validate(visibleFields);
     if (validation) {
       setError(validation);
       return;
@@ -79,7 +101,9 @@ export default function PublicFormPage() {
     try {
       const email = String(values[emailField!.name]).toLowerCase().trim();
       const arquivos: InscricaoArquivo[] = [];
-      for (const [campoId, file] of Object.entries(files)) {
+      const visibleFieldIds = new Set(visibleFields.map((field) => field.id));
+      const visibleFieldNames = new Set(visibleFields.map((field) => field.name));
+      for (const [campoId, file] of Object.entries(files).filter(([campoId]) => visibleFieldIds.has(campoId))) {
         setUploadProgress((current) => ({ ...current, [campoId]: 0 }));
         const uploaded = await uploadFile(file, {
           maxMb: 8,
@@ -92,10 +116,15 @@ export default function PublicFormPage() {
           return next;
         });
       }
-      const respostas = Object.fromEntries(Object.entries(values).map(([key, value]) => [key, typeof value === "string" ? sanitizeText(value) : value]));
+      const respostas = Object.fromEntries(
+        Object.entries(values)
+          .filter(([key]) => visibleFieldNames.has(key))
+          .map(([key, value]) => [key, typeof value === "string" ? sanitizeText(value) : value]),
+      );
       const signup = await createPublicSignup({
         eventoId: event.id,
         email,
+        categoriaId: publicCategories.length > 0 ? categoriaId : undefined,
         respostas,
         arquivos,
       });
@@ -111,7 +140,7 @@ export default function PublicFormPage() {
     }
   }
 
-  if (!event || !formulario) return <main className="flex min-h-screen items-center justify-center bg-violet-50 text-violet-950">Carregando...</main>;
+  if (!event || !formulario) return <main className="flex min-h-screen items-center justify-center bg-slate-50 text-slate-950">Carregando...</main>;
   const theme = normalizeTheme(formulario.tema);
   const inviteTheme = normalizeInviteTheme(event.conviteTema, event.corPrincipal);
   if (!formulario.publicado || event.status !== "ativo") return <main className="flex min-h-screen items-center justify-center" style={{ backgroundColor: theme.backgroundColor, color: theme.titleColor }}>Formulário indisponível.</main>;
@@ -157,11 +186,23 @@ export default function PublicFormPage() {
           <h1 className="text-3xl font-medium" style={{ color: theme.titleColor }}>{formulario.titulo}</h1>
           <p className="mt-2" style={{ color: theme.textColor }}>{formulario.descricao}</p>
           <div className="mt-6 space-y-4">
-            {[...formulario.campos].sort((a, b) => a.ordem - b.ordem).map((field) => (
+            {publicCategories.length > 0 && (
+              <div>
+                <label className="mb-1.5 block text-sm font-medium" style={{ color: theme.labelColor }}>Categoria de inscrição *</label>
+                <select className="h-11 w-full rounded-md border px-3 text-sm outline-none transition" style={{ backgroundColor: theme.inputBackgroundColor, borderColor: theme.inputBorderColor, color: theme.inputTextColor }} value={categoriaId} onChange={(event) => setCategoriaId(event.target.value)}>
+                  {publicCategories.map((category) => (
+                    <option key={category.id} value={category.id}>
+                      {category.nome}{category.tipo === "pago" ? " - pago" : ""}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+            {visibleFields.map((field) => (
               <DynamicField key={field.id} field={field} theme={theme} value={values[field.name]} selectedFile={files[field.id]} uploadProgress={uploadProgress[field.id]} onChange={(value) => setValues((current) => ({ ...current, [field.name]: value }))} onFile={(file) => setFiles((current) => ({ ...current, [field.id]: file }))} />
             ))}
           </div>
-          {error && <p className="mt-4 rounded-md bg-fuchsia-50 px-3 py-2 text-sm text-fuchsia-800">{error}</p>}
+          {error && <p className="mt-4 rounded-md bg-rose-50 px-3 py-2 text-sm text-rose-700">{error}</p>}
           <Button className="mt-6 w-full" disabled={loading} style={{ backgroundColor: theme.buttonBackgroundColor, color: theme.buttonTextColor }}>{loading ? "Enviando..." : "Confirmar inscrição"}</Button>
         </form>
       </Card>

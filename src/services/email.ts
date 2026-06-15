@@ -1,4 +1,4 @@
-import type { Inscricao } from "../types";
+﻿import type { Inscricao } from "../types";
 
 async function postFunction<T>(path: string, body: unknown, token?: string): Promise<T> {
   const response = await fetch(`/.netlify/functions/${path}`, {
@@ -20,8 +20,8 @@ export function sendInviteEmail(inscricaoId: string) {
   return postFunction<{ ok: boolean }>("sendInviteEmail", { inscricaoId });
 }
 
-export function createPublicSignup(payload: { eventoId: string; email: string; respostas: Record<string, unknown>; arquivos: unknown[] }) {
-  return postFunction<{ inscricaoId: string; qrToken: string; codigoConvite: string; statusInscricao: "confirmado" | "espera" }>("publicSignup", payload);
+export function createPublicSignup(payload: { eventoId: string; email: string; categoriaId?: string; respostas: Record<string, unknown>; arquivos: unknown[] }) {
+  return postFunction<{ inscricaoId: string; qrToken: string; codigoConvite: string; statusInscricao: "confirmado" | "espera"; categoriaInscricao?: { id: string; nome: string; tipo: "gratuito" | "pago" } }>("publicSignup", payload);
 }
 
 export function resendInviteEmail(inscricao: Inscricao, token: string) {

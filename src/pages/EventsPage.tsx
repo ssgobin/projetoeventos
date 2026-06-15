@@ -1,5 +1,5 @@
-import { collection, doc, getDoc, getDocs, orderBy, query, where, writeBatch } from "firebase/firestore";
-import { ClipboardList, Copy, Edit, FileText, Loader2, Mail, MapPin, QrCode, Trash2, Users } from "lucide-react";
+﻿import { collection, doc, getDoc, getDocs, orderBy, query, where, writeBatch } from "firebase/firestore";
+import { BarChart3, ClipboardList, Copy, Edit, FileText, Globe2, Loader2, Mail, MapPin, QrCode, Trash2, Users } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { EmptyState } from "../components/EmptyState";
@@ -19,6 +19,12 @@ type SignupFile = {
 
 const eventActions = [
   {
+    to: (eventId: string) => `/eventos/${eventId}/visao-geral`,
+    icon: BarChart3,
+    title: "Visão geral",
+    description: "Resumo, métricas e atalhos",
+  },
+  {
     to: (eventId: string) => `/eventos/${eventId}`,
     icon: Edit,
     title: "Dados do evento",
@@ -29,6 +35,12 @@ const eventActions = [
     icon: ClipboardList,
     title: "Formulário público",
     description: "Campos, tema e publicação",
+  },
+  {
+    to: (eventId: string) => `/eventos/${eventId}/pagina`,
+    icon: Globe2,
+    title: "Página pública",
+    description: "Landing, CTA e seções",
   },
   {
     to: (eventId: string) => `/eventos/${eventId}/convite`,
@@ -134,8 +146,8 @@ export default function EventsPage() {
   }
 
   function copyPublicLink(event: Evento) {
-    navigator.clipboard.writeText(`${location.origin}/form/${event.id}`);
-    notify({ type: "success", title: "Link copiado", description: "O link público do formulário está na área de transferência." });
+    navigator.clipboard.writeText(`${location.origin}/evento/${event.id}`);
+    notify({ type: "success", title: "Link copiado", description: "O link público do evento está na área de transferência." });
   }
 
   return (
@@ -154,12 +166,12 @@ export default function EventsPage() {
       ) : (
         <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
           {events.map((event, index) => (
-            <Card key={event.id} className="animate-fade-up overflow-hidden p-0 transition duration-300 hover:-translate-y-1 hover:shadow-[0_18px_48px_rgba(76,29,149,0.12)]" style={{ animationDelay: `${index * 45}ms` }}>
-              <div className="relative m-3 h-56 overflow-hidden rounded-xl bg-violet-100">
+            <Card key={event.id} className="animate-fade-up overflow-hidden p-0 transition duration-300 hover:-translate-y-1 hover:shadow-[0_18px_48px_rgba(15,23,42,0.08)]" style={{ animationDelay: `${index * 45}ms` }}>
+              <div className="relative m-3 h-56 overflow-hidden rounded-xl bg-indigo-50">
                 {(event.bannerFileId || event.bannerUrl) ? (
                   <img src={event.bannerFileId ? getFilePreview(event.bannerFileId) : event.bannerUrl} alt="" className="h-full w-full object-cover transition duration-500 hover:scale-105" />
                 ) : (
-                  <div className="flex h-full items-center justify-center bg-violet-50 text-violet-700">
+                  <div className="flex h-full items-center justify-center bg-slate-50 text-indigo-600">
                     <FileText className="h-10 w-10" />
                   </div>
                 )}
@@ -171,27 +183,27 @@ export default function EventsPage() {
               <div className="space-y-4 px-5 pb-5 pt-2">
                 <div>
                   <h2 className="line-clamp-1 text-lg font-medium tracking-normal">{event.nome}</h2>
-                  <p className="mt-1 line-clamp-2 min-h-10 text-sm leading-5 text-violet-950/60">{event.descricao}</p>
+                  <p className="mt-1 line-clamp-2 min-h-10 text-sm leading-5 text-slate-500">{event.descricao}</p>
                 </div>
-                <div className="space-y-2 text-sm text-violet-950/65">
+                <div className="space-y-2 text-sm text-slate-600">
                   <p>{formatDateTime(event.dataEvento)}</p>
-                  <p className="flex items-center gap-2"><MapPin className="h-4 w-4 text-violet-400" />{event.local}</p>
+                  <p className="flex items-center gap-2"><MapPin className="h-4 w-4 text-slate-400" />{event.local}</p>
                 </div>
                 <div className="space-y-2 pt-1">
-                  <p className="text-xs font-medium uppercase tracking-wide text-violet-950/45">Gerenciar</p>
+                  <p className="text-xs font-medium uppercase tracking-wide text-slate-400">Gerenciar</p>
                   <div className="grid gap-2">
                     {eventActions.map((action) => (
                       <Link
                         key={action.title}
                         to={action.to(event.id)}
-                        className="group flex items-center gap-3 rounded-lg border border-violet-100 bg-white px-3 py-2.5 text-left transition hover:border-violet-200 hover:bg-violet-50"
+                        className="group flex items-center gap-3 rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-left transition hover:border-slate-200 hover:bg-slate-50"
                       >
-                        <span className="grid h-9 w-9 shrink-0 place-items-center rounded-md bg-violet-50 text-violet-800 transition group-hover:bg-white">
+                        <span className="grid h-9 w-9 shrink-0 place-items-center rounded-md bg-slate-50 text-indigo-700 transition group-hover:bg-white">
                           <action.icon className="h-4 w-4" />
                         </span>
                         <span className="min-w-0">
-                          <span className="block text-sm font-medium text-violet-950">{action.title}</span>
-                          <span className="block truncate text-xs text-violet-950/55">{action.description}</span>
+                          <span className="block text-sm font-medium text-slate-950">{action.title}</span>
+                          <span className="block truncate text-xs text-slate-500">{action.description}</span>
                         </span>
                       </Link>
                     ))}

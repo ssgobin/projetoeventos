@@ -26,10 +26,10 @@ export default function LogsPage() {
       <Card className="overflow-hidden p-0">
         <div className="overflow-x-auto">
           <table className="w-full min-w-[720px] text-left text-sm">
-            <thead className="bg-violet-50 text-xs uppercase text-violet-950/60"><tr><th className="p-4">Data</th><th>Ação</th><th>Usuário</th><th>Detalhes</th></tr></thead>
+            <thead className="bg-slate-50 text-xs uppercase text-slate-500"><tr><th className="p-4">Data</th><th>Ação</th><th>Usuário</th><th>Detalhes</th></tr></thead>
             <tbody>
               {logs.map((log) => (
-                <tr key={log.id} className="border-t border-violet-100">
+                <tr key={log.id} className="border-t border-slate-200">
                   <td className="p-4">{formatDateTime(log.dataHora)}</td>
                   <td>{log.acao}</td>
                   <td>{log.usuarioId}</td>

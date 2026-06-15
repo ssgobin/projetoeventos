@@ -1,16 +1,17 @@
-import { getAdmin, response } from "./_admin";
-import { isEmail, makeInviteCode, makeSignupId, makeToken, normalizeEmail, resolveSignupStatus, sanitizeImportValue } from "./_invite";
+﻿import { getAdmin, response } from "./_admin";
+import { isEmail, makeInviteCode, makeSignupId, makeToken, normalizeEmail, resolveSignupStatusWithCategory, sanitizeImportValue } from "./_invite";
 
 type SignupBody = {
   eventoId?: string;
   email?: string;
+  categoriaId?: string;
   respostas?: Record<string, unknown>;
   arquivos?: Array<{ campoId: string; fileId: string; url: string; nome: string }>;
 };
 
 export async function handler(event: { body?: string }) {
   try {
-    const { eventoId, email: rawEmail, respostas = {}, arquivos = [] } = JSON.parse(event.body || "{}") as SignupBody;
+    const { eventoId, email: rawEmail, categoriaId, respostas = {}, arquivos = [] } = JSON.parse(event.body || "{}") as SignupBody;
     if (!eventoId) return response(400, { error: "eventoId obrigatório" });
     const email = normalizeEmail(rawEmail);
     if (!isEmail(email)) return response(400, { error: "Informe um e-mail válido." });
@@ -33,11 +34,12 @@ export async function handler(event: { body?: string }) {
       return response(409, { error: "Este e-mail já está inscrito neste evento." });
     }
 
-    const statusInscricao = await resolveSignupStatus(db, evento, eventoId);
+    const { statusInscricao, categoriaInscricao } = await resolveSignupStatusWithCategory(db, evento, eventoId, categoriaId || respostas.categoria, true);
     const qrToken = makeToken();
     const codigoConvite = makeInviteCode();
     const cleanResponses = Object.fromEntries(Object.entries(respostas).map(([key, value]) => [key, typeof value === "string" ? sanitizeImportValue(value) : value]));
     cleanResponses.email = email;
+    if (categoriaInscricao) cleanResponses.categoria = categoriaInscricao.nome;
 
     await inscricaoRef.set({
       empresaId: evento.empresaId,
@@ -47,6 +49,7 @@ export async function handler(event: { body?: string }) {
       arquivos,
       qrToken,
       codigoConvite,
+      ...(categoriaInscricao ? { categoriaInscricao } : {}),
       statusInscricao,
       checkin: { realizado: false },
       emailEnviado: false,
@@ -58,12 +61,12 @@ export async function handler(event: { body?: string }) {
       empresaId: evento.empresaId,
       usuarioId: "public-form",
       acao: statusInscricao === "espera" ? "inscricao_lista_espera" : "inscricao_confirmada",
-      detalhes: { eventoId, inscricaoId: inscricaoRef.id },
+      detalhes: { eventoId, inscricaoId: inscricaoRef.id, categoria: categoriaInscricao?.nome || null },
       dataHora: admin.firestore.FieldValue.serverTimestamp(),
     });
 
-    return response(200, { inscricaoId: inscricaoRef.id, qrToken, codigoConvite, statusInscricao });
+    return response(200, { inscricaoId: inscricaoRef.id, qrToken, codigoConvite, statusInscricao, categoriaInscricao });
   } catch (err) {
-    return response(err instanceof Error && err.message === "Evento lotado" ? 409 : 500, { error: err instanceof Error ? err.message : "Não foi possível concluir a inscrição." });
+    return response(err instanceof Error && err.message.includes("lotad") ? 409 : 500, { error: err instanceof Error ? err.message : "Não foi possível concluir a inscrição." });
   }
 }

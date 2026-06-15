@@ -1,5 +1,5 @@
-import { assertSameCompany, errorStatus, getAdmin, getAuthedUser, getAuthHeader, response } from "./_admin";
-import { isEmail, makeInviteCode, makeSignupId, makeToken, normalizeEmail, resolveSignupStatus, sanitizeImportValue, sendInvite } from "./_invite";
+﻿import { assertSameCompany, errorStatus, getAdmin, getAuthedUser, getAuthHeader, response } from "./_admin";
+import { isEmail, makeInviteCode, makeSignupId, makeToken, normalizeEmail, resolveSignupStatusWithCategory, sanitizeImportValue, sendInvite } from "./_invite";
 
 type ImportRow = Record<string, unknown>;
 
@@ -9,6 +9,10 @@ function pickEmail(row: ImportRow) {
 
 function pickName(row: ImportRow) {
   return sanitizeImportValue(row.nome ?? row.Nome ?? row.name ?? row.Name ?? row["nome completo"] ?? row["Nome completo"]);
+}
+
+function pickCategory(row: ImportRow) {
+  return sanitizeImportValue(row.categoria ?? row.Categoria ?? row.lote ?? row.Lote ?? row.tipo ?? row.Tipo ?? row.credencial ?? row.Credencial);
 }
 
 function normalizeResponses(row: ImportRow, email: string) {
@@ -68,8 +72,11 @@ export async function handler(event: { body?: string; headers: Record<string, st
       }
 
       let statusInscricao: "confirmado" | "espera";
+      let categoriaInscricao: Awaited<ReturnType<typeof resolveSignupStatusWithCategory>>["categoriaInscricao"];
       try {
-        statusInscricao = await resolveSignupStatus(db, evento, eventoId);
+        const status = await resolveSignupStatusWithCategory(db, evento, eventoId, pickCategory(row), false);
+        statusInscricao = status.statusInscricao;
+        categoriaInscricao = status.categoriaInscricao;
       } catch (error) {
         skipped.push({ row: rowNumber, email, reason: error instanceof Error ? error.message : "Evento lotado" });
         continue;
@@ -83,6 +90,7 @@ export async function handler(event: { body?: string; headers: Record<string, st
         arquivos: [],
         qrToken: makeToken(),
         codigoConvite: makeInviteCode(),
+        ...(categoriaInscricao ? { categoriaInscricao } : {}),
         statusInscricao,
         checkin: { realizado: false },
         emailEnviado: false,

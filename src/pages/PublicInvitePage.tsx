@@ -1,4 +1,4 @@
-import { CalendarDays, Download, MapPin, Share2 } from "lucide-react";
+﻿import { CalendarDays, Download, MapPin, Share2 } from "lucide-react";
 import { QRCodeCanvas } from "qrcode.react";
 import { useEffect, useRef, useState } from "react";
 import { useParams } from "react-router-dom";
@@ -47,11 +47,11 @@ export default function PublicInvitePage() {
   }
 
   if (error) {
-    return <main className="grid min-h-screen place-items-center bg-violet-50 p-6 text-violet-950">{error}</main>;
+    return <main className="grid min-h-screen place-items-center bg-slate-50 p-6 text-slate-950">{error}</main>;
   }
 
   if (!data) {
-    return <main className="grid min-h-screen place-items-center bg-violet-50 p-6 text-violet-950">Carregando convite...</main>;
+    return <main className="grid min-h-screen place-items-center bg-slate-50 p-6 text-slate-950">Carregando convite...</main>;
   }
 
   const { evento, inscricao } = data;
@@ -81,6 +81,7 @@ export default function PublicInvitePage() {
             <div className="mt-6 rounded-xl p-4 text-sm" style={{ backgroundColor: theme.detailsBackgroundColor, color: theme.textColor }}>
               <p><strong>Convidado:</strong> {String(inscricao.respostas.nome || inscricao.email)}</p>
               <p><strong>E-mail:</strong> {inscricao.email}</p>
+              {inscricao.categoriaInscricao && <p><strong>Categoria:</strong> {inscricao.categoriaInscricao.nome}</p>}
               <p><strong>Status:</strong> {inscricao.statusInscricao === "espera" ? "Lista de espera" : inscricao.checkin?.realizado ? "Check-in realizado" : "Aguardando check-in"}</p>
             </div>
           </section>

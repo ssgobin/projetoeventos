@@ -5,6 +5,8 @@ export type EventStatus = "ativo" | "inativo" | "encerrado";
 export type ThemeMode = "light";
 export type InviteLayout = "classic" | "highlight" | "compact";
 export type InviteShape = "soft" | "straight" | "pill";
+export type ScheduledEmailKind = "convite" | "lembrete24h" | "lembreteDia" | "posEvento";
+export type CategoriaTipo = "gratuito" | "pago";
 export type FieldType =
   | "text"
   | "textarea"
@@ -57,6 +59,25 @@ export interface Evento {
   permitirDuplicidadeEmail: boolean;
   capacidade?: number;
   listaEsperaAtiva?: boolean;
+  categoriasInscricao?: Array<{
+    id: string;
+    nome: string;
+    tipo: CategoriaTipo;
+    capacidade?: number;
+    listaEsperaAtiva?: boolean;
+    ativa?: boolean;
+    publica?: boolean;
+  }>;
+  emailAgenda?: {
+    conviteAtivo?: boolean;
+    lembrete24hAtivo?: boolean;
+    lembreteDiaAtivo?: boolean;
+    posEventoAtivo?: boolean;
+    posEventoHorasDepois?: number;
+    mensagemLembrete24h?: string;
+    mensagemLembreteDia?: string;
+    mensagemPosEvento?: string;
+  };
   mensagemConvite: string;
   mensagemSucesso: string;
   conviteTema?: {
@@ -88,6 +109,11 @@ export interface CampoFormulario {
   required: boolean;
   placeholder?: string;
   options?: string[];
+  conditional?: {
+    fieldId: string;
+    fieldName: string;
+    value: string;
+  };
   ordem: number;
 }
 
@@ -119,6 +145,39 @@ export interface Formulario {
   atualizadoEm: Timestamp;
 }
 
+export interface PaginaEvento {
+  id: string;
+  empresaId: string;
+  eventoId: string;
+  publicada: boolean;
+  eyebrow?: string;
+  titulo?: string;
+  subtitulo?: string;
+  ctaPrincipal?: string;
+  ctaSecundario?: string;
+  sobreTitulo?: string;
+  sobreTexto?: string;
+  cardTitulo?: string;
+  cardTexto?: string;
+  mostrarData?: boolean;
+  mostrarLocal?: boolean;
+  mostrarLogo?: boolean;
+  mostrarProgramacao?: boolean;
+  programacao?: Array<{
+    id: string;
+    horario: string;
+    titulo: string;
+    descricao?: string;
+  }>;
+  mostrarFaq?: boolean;
+  faq?: Array<{
+    id: string;
+    pergunta: string;
+    resposta: string;
+  }>;
+  atualizadoEm: Timestamp;
+}
+
 export interface InscricaoArquivo {
   campoId: string;
   fileId: string;
@@ -135,6 +194,11 @@ export interface Inscricao {
   arquivos?: InscricaoArquivo[];
   qrToken: string;
   codigoConvite: string;
+  categoriaInscricao?: {
+    id: string;
+    nome: string;
+    tipo: CategoriaTipo;
+  };
   statusInscricao?: "confirmado" | "espera";
   checkin: {
     realizado: boolean;
@@ -146,6 +210,12 @@ export interface Inscricao {
   emailErro?: string;
   emailEnviadoEm?: Timestamp;
   emailFalhouEm?: Timestamp;
+  emailAgendados?: Partial<Record<ScheduledEmailKind, {
+    status: "pendente" | "enviado" | "falhou";
+    enviadoEm?: Timestamp;
+    falhouEm?: Timestamp;
+    erro?: string;
+  }>>;
   criadoEm: Timestamp;
 }
 

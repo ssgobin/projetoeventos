@@ -13,11 +13,11 @@ export function Button({ className, variant = "primary", size = "md", asChild, .
   return (
     <Comp
       className={cn(
-        "inline-flex items-center justify-center gap-2 rounded-xl font-medium shadow-sm transition-all duration-200 disabled:pointer-events-none disabled:opacity-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 active:scale-[0.98]",
-        variant === "primary" && "bg-violet-950 text-white shadow-violet-950/10 hover:bg-violet-900 focus-visible:outline-violet-700",
-        variant === "secondary" && "border border-violet-200 bg-white text-violet-950 hover:border-violet-300 hover:bg-violet-50 focus-visible:outline-violet-700",
-        variant === "ghost" && "shadow-none text-violet-900 hover:bg-violet-50 focus-visible:outline-violet-700",
-        variant === "danger" && "bg-fuchsia-700 text-white shadow-fuchsia-700/10 hover:bg-fuchsia-800 focus-visible:outline-fuchsia-700",
+        "inline-flex items-center justify-center gap-2 rounded-lg font-semibold shadow-sm transition-all duration-200 disabled:pointer-events-none disabled:opacity-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 active:scale-[0.99]",
+        variant === "primary" && "bg-indigo-600 text-white shadow-indigo-600/15 hover:bg-indigo-700 focus-visible:outline-indigo-600",
+        variant === "secondary" && "border border-slate-200 bg-white text-slate-800 hover:border-slate-300 hover:bg-slate-50 focus-visible:outline-indigo-600",
+        variant === "ghost" && "shadow-none text-slate-700 hover:bg-slate-100 hover:text-slate-950 focus-visible:outline-indigo-600",
+        variant === "danger" && "bg-rose-600 text-white shadow-rose-600/10 hover:bg-rose-700 focus-visible:outline-rose-600",
         size === "sm" && "h-10 px-4 text-sm",
         size === "md" && "h-12 px-6 text-sm",
         size === "icon" && "h-10 w-10",

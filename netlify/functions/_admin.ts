@@ -1,4 +1,4 @@
-import admin from "firebase-admin";
+﻿import admin from "firebase-admin";
 
 function getServiceAccount() {
   const rawServiceAccount = process.env.FIREBASE_SERVICE_ACCOUNT_JSON;
@@ -21,7 +21,7 @@ function getServiceAccount() {
     };
   } catch (error) {
     if (error instanceof SyntaxError) {
-      throw new Error("FIREBASE_SERVICE_ACCOUNT_JSON nao e um JSON valido. Cole o JSON completo da conta de servico em uma unica linha.", { cause: error });
+      throw new Error("FIREBASE_SERVICE_ACCOUNT_JSON não é um JSON válido. Cole o JSON completo da conta de serviço em uma única linha.", { cause: error });
     }
     throw error;
   }

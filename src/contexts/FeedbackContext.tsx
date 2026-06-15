@@ -1,4 +1,4 @@
-/* eslint-disable react-refresh/only-export-components */
+﻿/* eslint-disable react-refresh/only-export-components */
 import { CheckCircle2, Info, X, XCircle } from "lucide-react";
 import { createContext, useCallback, useContext, useMemo, useState } from "react";
 import { Button } from "../components/ui/button";
@@ -70,18 +70,18 @@ export function FeedbackProvider({ children }: { children: React.ReactNode }) {
             <div
               key={toast.id}
               className={cn(
-                "pointer-events-auto flex animate-scale-in gap-3 rounded-xl border bg-white/95 p-4 shadow-[0_16px_40px_rgba(76,29,149,0.12)] backdrop-blur",
-                toast.type === "success" && "border-violet-200",
+                "pointer-events-auto flex animate-scale-in gap-3 rounded-xl border bg-white/95 p-4 shadow-[0_16px_40px_rgba(15,23,42,0.08)] backdrop-blur",
+                toast.type === "success" && "border-slate-200",
                 toast.type === "error" && "border-fuchsia-200",
                 toast.type === "info" && "border-purple-200"
               )}
             >
-              <Icon className={cn("mt-0.5 h-5 w-5", toast.type === "error" ? "text-fuchsia-700" : "text-violet-700")} />
+              <Icon className={cn("mt-0.5 h-5 w-5", toast.type === "error" ? "text-fuchsia-700" : "text-indigo-600")} />
               <div className="min-w-0 flex-1">
-                <p className="text-sm font-medium text-violet-950">{toast.title}</p>
-                {toast.description && <p className="mt-1 text-sm leading-5 text-violet-950/60">{toast.description}</p>}
+                <p className="text-sm font-medium text-slate-950">{toast.title}</p>
+                {toast.description && <p className="mt-1 text-sm leading-5 text-slate-500">{toast.description}</p>}
               </div>
-              <button className="rounded-full p-1 text-violet-400 transition hover:bg-violet-50 hover:text-violet-900" onClick={() => removeToast(toast.id)} aria-label="Fechar notificação">
+              <button className="rounded-full p-1 text-slate-400 transition hover:bg-slate-50 hover:text-slate-800" onClick={() => removeToast(toast.id)} aria-label="Fechar notificação">
                 <X className="h-4 w-4" />
               </button>
             </div>
@@ -91,9 +91,9 @@ export function FeedbackProvider({ children }: { children: React.ReactNode }) {
 
       {pendingConfirm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#120a1f]/55 p-4 backdrop-blur-md" role="dialog" aria-modal="true" aria-labelledby="confirm-title" aria-describedby={pendingConfirm.description ? "confirm-description" : undefined} onKeyDown={(event) => { if (event.key === "Escape") finishConfirm(false); }}>
-          <div className="w-full max-w-md animate-scale-in rounded-xl border border-violet-200 bg-white p-6 shadow-[0_24px_80px_rgba(46,16,101,0.22)]">
-            <h2 id="confirm-title" className="text-xl font-medium tracking-normal text-violet-950">{pendingConfirm.title}</h2>
-            {pendingConfirm.description && <p id="confirm-description" className="mt-2 text-sm leading-6 text-violet-950/65">{pendingConfirm.description}</p>}
+          <div className="w-full max-w-md animate-scale-in rounded-xl border border-slate-200 bg-white p-6 shadow-[0_24px_80px_rgba(46,16,101,0.22)]">
+            <h2 id="confirm-title" className="text-xl font-medium tracking-normal text-slate-950">{pendingConfirm.title}</h2>
+            {pendingConfirm.description && <p id="confirm-description" className="mt-2 text-sm leading-6 text-slate-600">{pendingConfirm.description}</p>}
             <div className="mt-6 flex justify-end gap-2">
               <Button variant="secondary" onClick={() => finishConfirm(false)}>{pendingConfirm.cancelLabel || "Cancelar"}</Button>
               <Button autoFocus variant={pendingConfirm.tone === "danger" ? "danger" : "primary"} onClick={() => finishConfirm(true)}>{pendingConfirm.confirmLabel || "Confirmar"}</Button>

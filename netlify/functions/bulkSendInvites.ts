@@ -1,4 +1,4 @@
-import { assertSameCompany, errorStatus, getAdmin, getAuthedUser, getAuthHeader, response } from "./_admin";
+﻿import { assertSameCompany, errorStatus, getAdmin, getAuthedUser, getAuthHeader, response } from "./_admin";
 import { sendInvite } from "./_invite";
 
 type BulkMode = "selected" | "pending" | "failed" | "all";

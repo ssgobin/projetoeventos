@@ -1,4 +1,4 @@
-import { collection, getDocs, limit, query, where } from "firebase/firestore";
+﻿import { collection, getDocs, limit, query, where } from "firebase/firestore";
 import { Html5QrcodeScanner } from "html5-qrcode";
 import { Check, Loader2, Search, X } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -146,12 +146,12 @@ export default function CheckinPage() {
         </div>
         <Card className="p-3">
           <div id="qr-reader" className="overflow-hidden rounded-lg" aria-label="Leitor de QR Code" />
-          {validating && <p className="px-3 pb-2 text-sm text-violet-950/60" role="status" aria-live="polite">Validando QR Code...</p>}
+          {validating && <p className="px-3 pb-2 text-sm text-slate-500" role="status" aria-live="polite">Validando QR Code...</p>}
         </Card>
         <Card>
-          <label className="mb-2 block text-sm font-medium text-violet-950" htmlFor="manual-search">Busca manual</label>
+          <label className="mb-2 block text-sm font-medium text-slate-950" htmlFor="manual-search">Busca manual</label>
           <div className="relative">
-            <Search className="absolute left-3 top-3.5 h-4 w-4 text-violet-400" aria-hidden="true" />
+            <Search className="absolute left-3 top-3.5 h-4 w-4 text-slate-400" aria-hidden="true" />
             <Input
               id="manual-search"
               className="pl-9"
@@ -169,26 +169,26 @@ export default function CheckinPage() {
               aria-describedby="manual-search-status"
             />
           </div>
-          <p id="manual-search-status" className="mt-2 text-sm text-violet-950/60" role="status" aria-live="polite">{manualError || manualHint}</p>
+          <p id="manual-search-status" className="mt-2 text-sm text-slate-500" role="status" aria-live="polite">{manualError || manualHint}</p>
           <div className="mt-4 space-y-2">
             {manualLoading && <LoadingState title="Buscando inscrito" description="Consultando e-mail, código e CPF sem carregar a lista inteira." />}
             {!manualLoading && manualResults.map((guest) => (
-              <button key={guest.id} className="w-full rounded-md border border-violet-200 bg-white p-3 text-left text-sm transition hover:bg-violet-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-violet-700" onClick={() => { setResult(guest); setStatus(guest.checkin.realizado ? "ja_realizado" : "valido"); }}>
+              <button key={guest.id} className="w-full rounded-md border border-slate-200 bg-white p-3 text-left text-sm transition hover:bg-slate-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600" onClick={() => { setResult(guest); setStatus(guest.checkin.realizado ? "ja_realizado" : "valido"); }}>
                 <span className="font-medium">{String(guest.respostas.nome || guest.email)}</span>
-                <span className="ml-2 text-violet-950/55">{guest.codigoConvite}</span>
+                <span className="ml-2 text-slate-500">{guest.codigoConvite}</span>
               </button>
             ))}
           </div>
         </Card>
       </section>
       {result && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-violet-950/45 p-4 backdrop-blur-sm" role="dialog" aria-modal="true" aria-labelledby="checkin-dialog-title" onKeyDown={(event) => { if (event.key === "Escape") cancelCheckin(); }}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/45 p-4 backdrop-blur-sm" role="dialog" aria-modal="true" aria-labelledby="checkin-dialog-title" onKeyDown={(event) => { if (event.key === "Escape") cancelCheckin(); }}>
           <Card className="max-h-[88vh] w-full max-w-2xl animate-scale-in overflow-auto">
             <div className="flex items-start justify-between gap-4">
               <div>
                 <p className="page-kicker">Resultado da leitura</p>
                 <CardTitle id="checkin-dialog-title">Confirmar check-in</CardTitle>
-                <p className="mt-1 text-sm text-violet-950/60">Confira os dados do convidado antes de registrar a entrada.</p>
+                <p className="mt-1 text-sm text-slate-500">Confira os dados do convidado antes de registrar a entrada.</p>
               </div>
               <Button variant="ghost" size="icon" onClick={cancelCheckin} aria-label="Cancelar check-in">
                 <X className="h-4 w-4" />
@@ -202,17 +202,18 @@ export default function CheckinPage() {
             <div className="mt-5 grid gap-3 sm:grid-cols-2">
               <Detail label="Nome" value={String(result.respostas.nome || "-")} />
               <Detail label="E-mail" value={result.email} />
+              <Detail label="Categoria" value={result.categoriaInscricao?.nome || "-"} />
               <Detail label="Código" value={result.codigoConvite} />
               <Detail label="Check-in" value={result.checkin.realizado ? "Já realizado" : "Pendente"} />
             </div>
 
             <div className="mt-6">
-              <h3 className="text-sm font-medium text-violet-950">Respostas do formulário</h3>
-              <div className="mt-3 divide-y divide-violet-100 rounded-xl border border-violet-200">
+              <h3 className="text-sm font-medium text-slate-950">Respostas do formulário</h3>
+              <div className="mt-3 divide-y divide-slate-100 rounded-xl border border-slate-200">
                 {Object.entries(result.respostas).map(([key, value]) => (
                   <div key={key} className="grid gap-1 p-3 sm:grid-cols-[180px_1fr]">
-                    <p className="text-sm font-medium capitalize text-violet-950">{key}</p>
-                    <p className="break-words text-sm text-violet-950/65">{Array.isArray(value) ? value.join(", ") : String(value || "-")}</p>
+                    <p className="text-sm font-medium capitalize text-slate-950">{key}</p>
+                    <p className="break-words text-sm text-slate-600">{Array.isArray(value) ? value.join(", ") : String(value || "-")}</p>
                   </div>
                 ))}
               </div>
@@ -234,9 +235,9 @@ export default function CheckinPage() {
 
 function Detail({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-xl border border-violet-200 bg-violet-50/60 p-3">
-      <p className="text-xs font-medium uppercase text-violet-950/50">{label}</p>
-      <p className="mt-1 break-words text-sm text-violet-950">{value}</p>
+    <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
+      <p className="text-xs font-medium uppercase text-slate-500">{label}</p>
+      <p className="mt-1 break-words text-sm text-slate-950">{value}</p>
     </div>
   );
 }

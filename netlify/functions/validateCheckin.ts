@@ -1,4 +1,4 @@
-import { assertSameCompany, errorStatus, getAdmin, getAuthedUser, getAuthHeader, response } from "./_admin";
+﻿import { assertSameCompany, errorStatus, getAdmin, getAuthedUser, getAuthHeader, response } from "./_admin";
 
 export async function handler(event: { body?: string; headers: Record<string, string | undefined> }) {
   try {
@@ -10,7 +10,7 @@ export async function handler(event: { body?: string; headers: Record<string, st
     if (body.confirmar && body.inscricaoId) {
       const ref = db.collection("inscricoes").doc(body.inscricaoId);
       const snap = await ref.get();
-      if (!snap.exists) return response(404, { error: "Inscricao nao encontrada" });
+      if (!snap.exists) return response(404, { error: "Inscrição não encontrada" });
       const inscricao = snap.data()!;
       assertSameCompany(auth.usuario, inscricao.empresaId);
       await ref.update({
@@ -39,7 +39,7 @@ export async function handler(event: { body?: string; headers: Record<string, st
 
     const qrToken = String(body.qrToken || "").trim();
     const eventoId = String(body.eventoId || "").trim();
-    if (!qrToken || !eventoId) return response(400, { error: "Token e evento obrigatorios" });
+    if (!qrToken || !eventoId) return response(400, { error: "Token e evento obrigatórios" });
     const snap = await db.collection("inscricoes").where("qrToken", "==", qrToken).limit(1).get();
     if (snap.empty) return response(200, { status: "invalido" });
     const doc = snap.docs[0];
@@ -49,6 +49,6 @@ export async function handler(event: { body?: string; headers: Record<string, st
     if (inscricao.checkin?.realizado) return response(200, { status: "ja_realizado", inscricao });
     return response(200, { status: "valido", inscricao });
   } catch (err) {
-    return response(errorStatus(err), { error: err instanceof Error ? err.message : "Falha na validacao" });
+    return response(errorStatus(err), { error: err instanceof Error ? err.message : "Falha na validação" });
   }
 }

@@ -1,5 +1,6 @@
-import { collection, doc, getDoc, getDocs, limit, orderBy, query, startAfter, where, type DocumentData, type QueryConstraint, type QueryDocumentSnapshot } from "firebase/firestore";
-import { Download, ExternalLink, Eye, Loader2, Mail, Search, Send, Upload, X } from "lucide-react";
+﻿import { collection, doc, getDoc, getDocs, limit, orderBy, query, startAfter, where, type DocumentData, type QueryConstraint, type QueryDocumentSnapshot } from "firebase/firestore";
+import { Download, ExternalLink, Eye, IdCard, Loader2, Mail, Search, Send, Upload, X } from "lucide-react";
+import QRCode from "qrcode";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useParams } from "react-router-dom";
 import * as XLSX from "xlsx";
@@ -25,6 +26,32 @@ function emailStatus(guest: Inscricao): EmailFilter {
 
 function inviteUrl(guest: Inscricao) {
   return `${location.origin}/convite/${encodeURIComponent(guest.id)}/${encodeURIComponent(guest.qrToken)}`;
+}
+
+function escapeHtml(value: unknown) {
+  return String(value || "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
+function firstAnswer(guest: Inscricao, keys: string[]) {
+  const entries = Object.entries(guest.respostas || {});
+  for (const key of keys) {
+    const found = entries.find(([name]) => name.toLowerCase() === key.toLowerCase());
+    if (found && found[1]) return String(found[1]);
+  }
+  return "";
+}
+
+function guestBadgeData(guest: Inscricao) {
+  return {
+    nome: firstAnswer(guest, ["nome", "nomeCompleto", "nome_completo", "participante"]) || guest.email,
+    empresa: firstAnswer(guest, ["empresa", "instituicao", "instituição", "organizacao", "organização", "company"]),
+    categoria: guest.categoriaInscricao?.nome || firstAnswer(guest, ["categoria", "tipo", "perfil", "credencial"]) || (guest.statusInscricao === "espera" ? "Lista de espera" : "Participante"),
+  };
 }
 
 export default function GuestsPage() {
@@ -151,6 +178,8 @@ export default function GuestsPage() {
 
     const rows = filtered.map((guest) => ({
       email: guest.email,
+      categoria: guest.categoriaInscricao?.nome || "",
+      tipoCategoria: guest.categoriaInscricao?.tipo || "",
       codigoConvite: guest.codigoConvite,
       emailStatus: emailStatus(guest),
       emailErro: guest.emailErro || "",
@@ -163,6 +192,103 @@ export default function GuestsPage() {
     XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(rows), "inscritos");
     XLSX.writeFile(wb, "inscritos.xlsx");
     notify({ type: "success", title: "Exportação iniciada", description: `${rows.length} convidados foram preparados para Excel.` });
+  }
+
+  async function generateBadgesPdf() {
+    const target = selectedIds.size > 0 ? filtered.filter((guest) => selectedIds.has(guest.id)) : filtered;
+    if (target.length === 0) {
+      notify({ type: "info", title: "Nenhum convidado", description: "Carregue ou selecione inscritos para gerar crachás." });
+      return;
+    }
+
+    const confirmed = await confirmAction({
+      title: "Gerar crachás?",
+      description: selectedIds.size > 0
+        ? `Serão gerados ${target.length} crachá(s) dos selecionados.`
+        : `Serão gerados ${target.length} crachá(s) dos registros filtrados e carregados na tela.`,
+      confirmLabel: "Gerar PDF",
+    });
+    if (!confirmed) return;
+
+    const badges = await Promise.all(target.map(async (guest) => ({
+      guest,
+      data: guestBadgeData(guest),
+      qr: await QRCode.toDataURL(guest.qrToken, { margin: 1, width: 180 }),
+    })));
+
+    const html = `<!doctype html>
+      <html lang="pt-BR">
+        <head>
+          <meta charset="utf-8" />
+          <title>Crachás do evento</title>
+          <style>
+            @page { size: A4; margin: 10mm; }
+            * { box-sizing: border-box; }
+            body { margin: 0; font-family: Montserrat, Arial, sans-serif; color: #25123f; background: #fff; }
+            .sheet { display: grid; grid-template-columns: repeat(2, 90mm); grid-auto-rows: 58mm; gap: 7mm; align-items: start; }
+            .badge {
+              width: 90mm;
+              height: 58mm;
+              break-inside: avoid;
+              page-break-inside: avoid;
+              border: 1px solid #d8c7fb;
+              border-radius: 5mm;
+              overflow: hidden;
+              display: grid;
+              grid-template-columns: 1fr 28mm;
+              background: #ffffff;
+            }
+            .content { padding: 7mm 4mm 5mm 6mm; min-width: 0; }
+            .kicker { margin: 0 0 3mm; font-size: 7pt; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: #6d28d9; }
+            .name { margin: 0; font-size: 17pt; line-height: 1.05; font-weight: 700; overflow-wrap: anywhere; }
+            .company { margin: 3mm 0 0; font-size: 9pt; line-height: 1.25; color: rgba(37,18,63,.68); overflow-wrap: anywhere; }
+            .category { display: inline-block; margin-top: 4mm; border-radius: 999px; background: #f3e8ff; color: #581c87; padding: 2mm 3mm; font-size: 7pt; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; }
+            .qr { border-left: 1px solid #eadcff; background: #fbf9ff; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2mm; padding: 3mm; }
+            .qr img { width: 24mm; height: 24mm; }
+            .code { font-family: Consolas, monospace; font-size: 7pt; letter-spacing: .12em; color: #4c1d95; text-align: center; overflow-wrap: anywhere; }
+            .cut { position: fixed; inset: auto 10mm 4mm auto; color: #7c6b98; font-size: 8pt; }
+            @media screen {
+              body { background: #f5f3ff; padding: 20px; }
+              .sheet { width: fit-content; margin: auto; }
+              .cut { display: none; }
+            }
+          </style>
+        </head>
+        <body>
+          <main class="sheet">
+            ${badges.map(({ guest, data, qr }) => `
+              <section class="badge">
+                <div class="content">
+                  <p class="kicker">Credencial</p>
+                  <h1 class="name">${escapeHtml(data.nome)}</h1>
+                  <p class="company">${escapeHtml(data.empresa || guest.email)}</p>
+                  <span class="category">${escapeHtml(data.categoria)}</span>
+                </div>
+                <aside class="qr">
+                  <img src="${qr}" alt="QR Code" />
+                  <div class="code">${escapeHtml(guest.codigoConvite)}</div>
+                </aside>
+              </section>
+            `).join("")}
+          </main>
+          <p class="cut">Use a opção Salvar como PDF na janela de impressão.</p>
+          <script>
+            window.addEventListener("load", () => {
+              setTimeout(() => window.print(), 250);
+            });
+          </script>
+        </body>
+      </html>`;
+
+    const printWindow = window.open("", "_blank", "noopener,noreferrer");
+    if (!printWindow) {
+      notify({ type: "error", title: "Pop-up bloqueado", description: "Permita pop-ups para gerar os crachás em PDF." });
+      return;
+    }
+    printWindow.document.open();
+    printWindow.document.write(html);
+    printWindow.document.close();
+    notify({ type: "success", title: "Crachás preparados", description: `${target.length} crachá(s) prontos para imprimir ou salvar em PDF.` });
   }
 
   function downloadCsvTemplate() {
@@ -282,6 +408,7 @@ export default function GuestsPage() {
           <p className="page-description">Importação por planilha, status de e-mail, envio em massa, reenvio e exportação.</p>
         </div>
         <div className="flex flex-wrap gap-2">
+          <Button variant="secondary" onClick={generateBadgesPdf}><IdCard className="h-4 w-4" />Gerar crachás</Button>
           <Button onClick={exportXlsx}><Download className="h-4 w-4" />Exportar Excel</Button>
         </div>
       </div>
@@ -290,11 +417,11 @@ export default function GuestsPage() {
         <div className="grid gap-4 lg:grid-cols-[1fr_auto] lg:items-end">
           <div className="grid gap-3 md:grid-cols-[1fr_170px_170px]">
             <div className="relative">
-              <Search className="absolute left-3 top-3.5 h-4 w-4 text-violet-400" />
+              <Search className="absolute left-3 top-3.5 h-4 w-4 text-slate-400" />
               <Input className="pl-9" placeholder="Buscar nome, e-mail, código ou CPF nos registros carregados" value={search} onChange={(event) => setSearch(event.target.value)} />
             </div>
             <select
-              className="h-11 rounded-md border border-violet-200 bg-white px-3 text-sm text-violet-950 outline-none transition focus:border-violet-500 focus:ring-4 focus:ring-violet-100"
+              className="h-11 rounded-md border border-slate-200 bg-white px-3 text-sm text-slate-950 outline-none transition focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100"
               value={status}
               onChange={(event) => {
                 setLoading(true);
@@ -305,7 +432,7 @@ export default function GuestsPage() {
               <option value="pendente">Check-in pendente</option>
               <option value="checkin">Com check-in</option>
             </select>
-            <select className="h-11 rounded-md border border-violet-200 bg-white px-3 text-sm text-violet-950 outline-none transition focus:border-violet-500 focus:ring-4 focus:ring-violet-100" value={emailFilter} onChange={(event) => setEmailFilter(event.target.value as EmailFilter)}>
+            <select className="h-11 rounded-md border border-slate-200 bg-white px-3 text-sm text-slate-950 outline-none transition focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100" value={emailFilter} onChange={(event) => setEmailFilter(event.target.value as EmailFilter)}>
               <option value="todos">Todos os e-mails</option>
               <option value="pendente">E-mail pendente</option>
               <option value="enviado">E-mail enviado</option>
@@ -314,12 +441,12 @@ export default function GuestsPage() {
           </div>
 
           <div className="flex flex-wrap gap-2">
-            <label className="inline-flex h-10 cursor-pointer items-center justify-center gap-2 rounded-xl border border-violet-200 bg-white px-4 text-sm font-medium text-violet-950 shadow-sm transition hover:border-violet-300 hover:bg-violet-50">
+            <label className="inline-flex h-10 cursor-pointer items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-sm font-medium text-slate-950 shadow-sm transition hover:border-slate-300 hover:bg-slate-50">
               {importing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
               {importing ? "Importando" : "Importar Excel/CSV"}
               <input className="hidden" type="file" accept=".xlsx,.xls,.csv" onChange={(event) => handleImport(event.target.files?.[0])} />
             </label>
-            <label className="flex h-10 items-center gap-2 rounded-xl border border-violet-100 bg-violet-50 px-3 text-sm text-violet-950">
+            <label className="flex h-10 items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm text-slate-950">
               <input type="checkbox" checked={importSendEmails} onChange={(event) => setImportSendEmails(event.target.checked)} />
               Enviar ao importar
             </label>
@@ -331,19 +458,20 @@ export default function GuestsPage() {
           <Button size="sm" variant="secondary" disabled={bulkSending} onClick={() => sendBulk("pending")}><Mail className="h-4 w-4" />Enviar pendentes</Button>
           <Button size="sm" variant="secondary" disabled={bulkSending} onClick={() => sendBulk("failed")}><Mail className="h-4 w-4" />Reenviar falhas</Button>
           <Button size="sm" variant="secondary" onClick={downloadCsvTemplate}><Download className="h-4 w-4" />Baixar CSV modelo</Button>
-          {bulkSending && <span className="inline-flex items-center gap-2 text-sm text-violet-950/60"><Loader2 className="h-4 w-4 animate-spin" />Processando envios...</span>}
+          {bulkSending && <span className="inline-flex items-center gap-2 text-sm text-slate-500"><Loader2 className="h-4 w-4 animate-spin" />Processando envios...</span>}
         </div>
       </Card>
 
       <Card className="overflow-hidden p-0">
         {loadError && <div className="p-4"><ErrorState title="Lista indisponível" description={loadError} onRetry={() => load(true)} /></div>}
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[1040px] text-left text-sm">
-            <thead className="bg-violet-50 text-xs uppercase text-violet-950/60">
+          <table className="w-full min-w-[1120px] text-left text-sm">
+            <thead className="bg-slate-50 text-xs uppercase text-slate-500">
               <tr>
                 <th className="p-4"><input type="checkbox" checked={allFilteredSelected} onChange={toggleAllFiltered} /></th>
                 <th>Convidado</th>
                 <th>E-mail</th>
+                <th>Categoria</th>
                 <th>Inscrição</th>
                 <th>Check-in</th>
                 <th>Inscrição</th>
@@ -355,16 +483,17 @@ export default function GuestsPage() {
             <tbody>
               {loading && guests.length === 0 && (
                 <tr>
-                  <td className="p-6 text-center text-violet-950/60" colSpan={9}>Carregando inscritos...</td>
+                  <td className="p-6 text-center text-slate-500" colSpan={10}>Carregando inscritos...</td>
                 </tr>
               )}
               {filtered.map((guest) => {
                 const mailStatus = emailStatus(guest);
                 return (
-                  <tr key={guest.id} className="border-t border-violet-100">
+                  <tr key={guest.id} className="border-t border-slate-200">
                     <td className="p-4"><input type="checkbox" checked={selectedIds.has(guest.id)} onChange={() => toggleSelected(guest.id)} /></td>
                     <td className="font-medium">{String(guest.respostas.nome || "-")}</td>
                     <td>{guest.email}</td>
+                    <td><Badge tone={guest.categoriaInscricao?.tipo === "pago" ? "amber" : "slate"}>{guest.categoriaInscricao?.nome || "-"}</Badge></td>
                     <td>{formatDateTime(guest.criadoEm)}</td>
                     <td><Badge tone={guest.checkin.realizado ? "green" : "amber"}>{guest.checkin.realizado ? "Check-in" : "Pendente"}</Badge></td>
                     <td><Badge tone={guest.statusInscricao === "espera" ? "amber" : "green"}>{guest.statusInscricao === "espera" ? "Lista de espera" : "Confirmado"}</Badge></td>
@@ -373,7 +502,7 @@ export default function GuestsPage() {
                         <Badge tone={mailStatus === "enviado" ? "green" : mailStatus === "falhou" ? "red" : "amber"}>
                           {mailStatus === "enviado" ? "Enviado" : mailStatus === "falhou" ? "Falhou" : "Pendente"}
                         </Badge>
-                        {guest.emailErro && <p className="max-w-[220px] truncate text-xs text-fuchsia-800" title={guest.emailErro}>{guest.emailErro}</p>}
+                        {guest.emailErro && <p className="max-w-[220px] truncate text-xs text-rose-700" title={guest.emailErro}>{guest.emailErro}</p>}
                       </div>
                     </td>
                     <td className="font-mono">{guest.codigoConvite}</td>
@@ -392,7 +521,7 @@ export default function GuestsPage() {
               })}
               {!loading && filtered.length === 0 && (
                 <tr>
-                  <td className="p-6 text-center text-violet-950/60" colSpan={9}>Nenhum inscrito encontrado com os filtros atuais.</td>
+                  <td className="p-6 text-center text-slate-500" colSpan={10}>Nenhum inscrito encontrado com os filtros atuais.</td>
                 </tr>
               )}
             </tbody>
@@ -405,16 +534,16 @@ export default function GuestsPage() {
           {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
           {hasMore ? "Carregar mais" : "Todos os registros carregados"}
         </Button>
-        <p className="text-sm text-violet-950/55">{filtered.length} de {guests.length} registro(s) carregado(s) exibido(s).</p>
+        <p className="text-sm text-slate-500">{filtered.length} de {guests.length} registro(s) carregado(s) exibido(s).</p>
       </div>
 
       {selectedGuest && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-violet-950/45 p-4 backdrop-blur-sm" role="dialog" aria-modal="true" aria-labelledby="guest-detail-title" onKeyDown={(event) => { if (event.key === "Escape") setSelectedGuest(null); }}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/45 p-4 backdrop-blur-sm" role="dialog" aria-modal="true" aria-labelledby="guest-detail-title" onKeyDown={(event) => { if (event.key === "Escape") setSelectedGuest(null); }}>
           <Card className="max-h-[88vh] w-full max-w-2xl animate-scale-in overflow-auto">
             <div className="flex items-start justify-between gap-4">
               <div>
                 <CardTitle id="guest-detail-title">Informações do convidado</CardTitle>
-                <p className="mt-1 text-sm text-violet-950/60">{selectedGuest.email}</p>
+                <p className="mt-1 text-sm text-slate-500">{selectedGuest.email}</p>
               </div>
               <Button autoFocus variant="ghost" size="icon" onClick={() => setSelectedGuest(null)} aria-label="Fechar detalhes">
                 <X className="h-4 w-4" />
@@ -424,6 +553,7 @@ export default function GuestsPage() {
             <div className="mt-6 grid gap-3 sm:grid-cols-2">
               <Detail label="Nome" value={String(selectedGuest.respostas.nome || "-")} />
               <Detail label="E-mail" value={selectedGuest.email} />
+              <Detail label="Categoria" value={selectedGuest.categoriaInscricao?.nome || "-"} />
               <Detail label="Código" value={selectedGuest.codigoConvite} />
               <Detail label="Status do e-mail" value={emailStatus(selectedGuest)} />
               <Detail label="Status da inscrição" value={selectedGuest.statusInscricao === "espera" ? "Lista de espera" : "Confirmado"} />
@@ -434,12 +564,12 @@ export default function GuestsPage() {
             </div>
 
             <div className="mt-6">
-              <h3 className="text-sm font-medium text-violet-950">Respostas do formulário</h3>
-              <div className="mt-3 divide-y divide-violet-100 rounded-xl border border-violet-200">
+              <h3 className="text-sm font-medium text-slate-950">Respostas do formulário</h3>
+              <div className="mt-3 divide-y divide-slate-100 rounded-xl border border-slate-200">
                 {Object.entries(selectedGuest.respostas).map(([key, value]) => (
                   <div key={key} className="grid gap-1 p-3 sm:grid-cols-[180px_1fr]">
-                    <p className="text-sm font-medium capitalize text-violet-950">{key}</p>
-                    <p className="break-words text-sm text-violet-950/65">{Array.isArray(value) ? value.join(", ") : String(value || "-")}</p>
+                    <p className="text-sm font-medium capitalize text-slate-950">{key}</p>
+                    <p className="break-words text-sm text-slate-600">{Array.isArray(value) ? value.join(", ") : String(value || "-")}</p>
                   </div>
                 ))}
               </div>
@@ -447,10 +577,10 @@ export default function GuestsPage() {
 
             {selectedGuest.arquivos && selectedGuest.arquivos.length > 0 && (
               <div className="mt-6">
-                <h3 className="text-sm font-medium text-violet-950">Arquivos enviados</h3>
+                <h3 className="text-sm font-medium text-slate-950">Arquivos enviados</h3>
                 <div className="mt-3 space-y-2">
                   {selectedGuest.arquivos.map((file) => (
-                    <a key={file.fileId} href={file.url} target="_blank" rel="noreferrer" className="block rounded-md border border-violet-200 px-3 py-2 text-sm text-violet-800 hover:bg-violet-50">
+                    <a key={file.fileId} href={file.url} target="_blank" rel="noreferrer" className="block rounded-md border border-slate-200 px-3 py-2 text-sm text-indigo-700 hover:bg-slate-50">
                       {file.nome}
                     </a>
                   ))}
@@ -466,9 +596,9 @@ export default function GuestsPage() {
 
 function Detail({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-xl border border-violet-200 bg-violet-50/60 p-3">
-      <p className="text-xs font-medium uppercase text-violet-950/50">{label}</p>
-      <p className="mt-1 break-words text-sm text-violet-950">{value}</p>
+    <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
+      <p className="text-xs font-medium uppercase text-slate-500">{label}</p>
+      <p className="mt-1 break-words text-sm text-slate-950">{value}</p>
     </div>
   );
 }

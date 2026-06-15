@@ -5,11 +5,11 @@ export function Badge({ children, tone = "slate" }: { children: React.ReactNode;
     <span
       className={cn(
         "inline-flex items-center rounded-full px-3 py-1.5 text-xs font-semibold shadow-sm",
-        tone === "slate" && "bg-violet-100 text-violet-800",
-        tone === "green" && "bg-violet-50 text-violet-800 ring-1 ring-violet-200",
-        tone === "red" && "bg-fuchsia-50 text-fuchsia-800",
-        tone === "amber" && "bg-purple-100 text-purple-800",
-        tone === "blue" && "bg-indigo-100 text-indigo-800"
+        tone === "slate" && "bg-slate-100 text-slate-700 ring-1 ring-slate-200",
+        tone === "green" && "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200",
+        tone === "red" && "bg-rose-50 text-rose-700 ring-1 ring-rose-200",
+        tone === "amber" && "bg-amber-50 text-amber-800 ring-1 ring-amber-200",
+        tone === "blue" && "bg-blue-50 text-blue-700 ring-1 ring-blue-200"
       )}
     >
       {children}

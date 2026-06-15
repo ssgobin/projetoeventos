@@ -1,4 +1,4 @@
-import { getAdmin, response } from "./_admin";
+﻿import { getAdmin, response } from "./_admin";
 
 export async function handler(event: { queryStringParameters?: Record<string, string | undefined> }) {
   try {

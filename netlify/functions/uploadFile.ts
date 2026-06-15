@@ -1,4 +1,4 @@
-import { appwriteConfig, appwritePreviewUrl, getAppwriteHeaders, jsonResponse } from "./_appwrite";
+﻿import { appwriteConfig, appwritePreviewUrl, getAppwriteHeaders, jsonResponse } from "./_appwrite";
 
 type AppwriteFileResponse = {
   $id?: string;
@@ -13,7 +13,7 @@ export async function handler(event: { body?: string; headers: Record<string, st
   try {
     const contentType = event.headers["content-type"] || event.headers["Content-Type"];
     if (!contentType?.includes("multipart/form-data")) return jsonResponse(400, { error: "Envie multipart/form-data." });
-    if (!event.body) return jsonResponse(400, { error: "Arquivo obrigatorio." });
+    if (!event.body) return jsonResponse(400, { error: "Arquivo obrigatório." });
 
     const body = Buffer.from(event.body, event.isBase64Encoded ? "base64" : "utf8");
     const response = await fetch(`${appwriteConfig.endpoint}/storage/buckets/${appwriteConfig.bucketId}/files`, {

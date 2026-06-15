@@ -1,4 +1,4 @@
-import { appwriteConfig, getAppwriteHeaders, jsonResponse } from "./_appwrite";
+﻿import { appwriteConfig, getAppwriteHeaders, jsonResponse } from "./_appwrite";
 
 type AppwriteErrorResponse = {
   message?: string;
@@ -10,7 +10,7 @@ export async function handler(event: { body?: string; httpMethod?: string }) {
 
   try {
     const { fileId } = JSON.parse(event.body || "{}");
-    if (!fileId) return jsonResponse(400, { error: "fileId obrigatorio." });
+    if (!fileId) return jsonResponse(400, { error: "fileId obrigatório." });
 
     const response = await fetch(`${appwriteConfig.endpoint}/storage/buckets/${appwriteConfig.bucketId}/files/${encodeURIComponent(fileId)}`, {
       method: "DELETE",

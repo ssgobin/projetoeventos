@@ -1,4 +1,4 @@
-import { appwriteConfig, getAppwriteHeaders } from "./_appwrite";
+﻿import { appwriteConfig, getAppwriteHeaders } from "./_appwrite";
 
 export async function handler(event: { queryStringParameters?: Record<string, string | undefined>; httpMethod?: string }) {
   if (event.httpMethod !== "GET") {
@@ -16,7 +16,7 @@ export async function handler(event: { queryStringParameters?: Record<string, st
       return {
         statusCode: 400,
         headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" },
-        body: JSON.stringify({ error: "fileId obrigatorio." }),
+        body: JSON.stringify({ error: "fileId obrigatório." }),
       };
     }
 
