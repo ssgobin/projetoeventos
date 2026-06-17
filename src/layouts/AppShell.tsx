@@ -1,4 +1,4 @@
-import { BarChart3, CalendarDays, ClipboardList, LogOut, Menu, Search, X } from "lucide-react";
+import { BarChart3, CalendarDays, ClipboardList, FileClock, LogOut, Menu, Search, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { NavLink, Outlet } from "react-router-dom";
 import { Button } from "../components/ui/button";
@@ -8,6 +8,7 @@ import { cn } from "../lib/utils";
 const nav = [
   { to: "/", label: "Dashboard", icon: BarChart3 },
   { to: "/eventos", label: "Eventos", icon: CalendarDays },
+  { to: "/logs", label: "Logs", icon: FileClock },
 ];
 
 function TrebinCredit({ className }: { className?: string }) {
@@ -16,6 +17,44 @@ function TrebinCredit({ className }: { className?: string }) {
       <a href="https://trebintech.com" target="_blank" rel="noopener noreferrer">
         <img src="/trebin_logo.png" alt="Trebin" className="h-10 w-auto object-contain opacity-80" />
       </a>
+    </div>
+  );
+}
+
+function SearchResults({
+  loading,
+  results,
+  onSelect,
+}: {
+  loading: boolean;
+  results: Array<{ id: string; type: "event" | "guest"; title: string; subtitle: string; to: string }>;
+  onSelect: (to: string) => void;
+}) {
+  return (
+    <div className="absolute left-0 right-0 top-full z-40 mt-2 overflow-hidden rounded-lg border border-slate-200 bg-white shadow-xl shadow-slate-200/70">
+      <div className="max-h-80 overflow-auto p-2">
+        {loading && <p className="px-3 py-2 text-sm text-slate-500">Buscando...</p>}
+        {!loading && results.length === 0 && <p className="px-3 py-2 text-sm text-slate-500">Nenhum resultado encontrado.</p>}
+        {!loading && results.map((result) => {
+          const Icon = result.type === "event" ? CalendarDays : UserRound;
+          return (
+            <button
+              key={result.id}
+              type="button"
+              className="flex w-full items-start gap-3 rounded-md px-3 py-2 text-left transition hover:bg-slate-50"
+              onClick={() => onSelect(result.to)}
+            >
+              <span className="mt-0.5 grid h-8 w-8 shrink-0 place-items-center rounded-md bg-indigo-50 text-indigo-700">
+                <Icon className="h-4 w-4" />
+              </span>
+              <span className="min-w-0">
+                <span className="block truncate text-sm font-semibold text-slate-950">{result.title}</span>
+                <span className="mt-0.5 block truncate text-xs text-slate-500">{result.subtitle}</span>
+              </span>
+            </button>
+          );
+        })}
+      </div>
     </div>
   );
 }

@@ -18,6 +18,7 @@ const CheckinPage = lazy(() => import("./pages/CheckinPage"));
 const PublicEventPage = lazy(() => import("./pages/PublicEventPage"));
 const PublicFormPage = lazy(() => import("./pages/PublicFormPage"));
 const PublicInvitePage = lazy(() => import("./pages/PublicInvitePage"));
+const LogsPage = lazy(() => import("./pages/LogsPage"));
 
 function App() {
   return (
@@ -41,6 +42,7 @@ function App() {
               <Route path="/eventos/:eventoId/formulario" element={<FormBuilderPage />} />
               <Route path="/eventos/:eventoId/inscritos" element={<GuestsPage />} />
               <Route path="/eventos/:eventoId/checkin" element={<CheckinPage />} />
+              <Route path="/logs" element={<LogsPage />} />
             </Route>
           </Route>
           <Route path="*" element={<Navigate to="/" replace />} />
